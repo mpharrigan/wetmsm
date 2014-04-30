@@ -4,6 +4,8 @@ import argparse
 
 
 class Attrib(object):
+    """Container object for command line attributes."""
+
     def __init__(self):
         self.varname = None
         self.long_name = None
@@ -15,6 +17,11 @@ class Attrib(object):
 
 
 def get_attribute_help(docstring):
+    """From a docstring, get help strings
+
+    We expect lines of the form
+    :attrib [atrribute_name]: help text
+    """
     docdict = dict()
     linesplits = docstring.splitlines()
     for line in linesplits:
@@ -30,6 +37,11 @@ def get_attribute_help(docstring):
 
 
 def generate_atributes(var_dict, max_short):
+    """Yield attributes by iterating over a dictionary of class attributes.
+
+    :param var_dict: found from vars(class)
+    :param max_short: The maximum length of the 'short form' of the option
+    """
     attr_short_names = set()
     for attr in var_dict:
 
@@ -53,7 +65,7 @@ def generate_atributes(var_dict, max_short):
 
         # Add it if possible
         if attr_short_name is not None:
-            ao.short_name = '--{}'.format(attr_short_name)
+            ao.short_name = '-{}'.format(attr_short_name)
 
         # Long name is just variable name
         ao.varname = attr
@@ -81,7 +93,9 @@ def generate_atributes(var_dict, max_short):
 def parsify(c_obj, max_short=3):
     """Take an object and make all of its attributes command line options."""
 
-    parser = argparse.ArgumentParser(description=c_obj.__doc__,
+    first_doc_line = c_obj.__doc__.splitlines()[0]
+
+    parser = argparse.ArgumentParser(description=first_doc_line,
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     docdict = get_attribute_help(c_obj.__doc__)
@@ -102,6 +116,6 @@ def parsify(c_obj, max_short=3):
             parser.add_argument(ao.long_name, metavar=ao.metavar,
                                 default=ao.defval, type=ao.dtype,
                                 help=ao.helptxt)
-
-    c_obj = parser.parse_args(namespace=c_obj)
-    return c_obj
+    c_inst = c_obj()
+    parser.parse_args(namespace=c_inst)
+    return c_inst

@@ -1,4 +1,4 @@
-"""Apply Gaussian-kernel solvent fingerprint to a set of trajectories."""
+"""Apply spherical shells solvent fingerprint to a set of trajectories."""
 
 __author__ = 'harrigan'
 
@@ -8,9 +8,8 @@ import mixtape.featurizer
 from mcmd import mcmd
 
 
-class GaussianSolventComputation(object):
+class SolventShellsComputation(object):
     """Do solvent fingerprinting on trajectories.
-
 
     :attr solvent_indices_fn: Path to solvent indices file
     :attr solute_indices_fn: Path to solute indices file.
@@ -19,12 +18,13 @@ class GaussianSolventComputation(object):
     solute_indices_fn = 'solute_indices.dat'
     solvent_indices = None
     solvent_indices_fn = 'solvent_indices.dat'
-    sigma = 0.5
+    n_shells = 6
+    shell_width = 0.5
     traj_fn = str
     traj_top = str
     featurizer = None
     feat_mat = None
-    feature_out_fn = 'solventfp.npy'
+    feature_out_fn = 'shells.npy'
     trajs = None
 
     def load(self):
@@ -37,10 +37,11 @@ class GaussianSolventComputation(object):
 
         self.trajs = [md.load(self.traj_fn, top=self.traj_top)]
 
-        self.featurizer = mixtape.featurizer.GaussianSolventFeaturizer(
+        self.featurizer = mixtape.featurizer.SolventShellsFeaturizer(
             self.solute_indices,
             self.solvent_indices,
-            self.sigma,
+            self.n_shells,
+            self.shell_width,
             periodic=True)
 
     def featurize_all(self):
@@ -62,7 +63,7 @@ class GaussianSolventComputation(object):
 
 def parse():
     """Parse command line options."""
-    gsc = mcmd.parsify(GaussianSolventComputation)
+    gsc = mcmd.parsify(SolventShellsComputation)
     gsc.main()
 
 
