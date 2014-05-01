@@ -8,39 +8,6 @@ from mixtape.featurizer import Featurizer
 from mcmd import mcmd
 
 
-class SolventShellsFeaturizer(Featurizer):
-    def __init__(self, solute_indices, solvent_indices, n_shells, shell_width,
-                 periodic=True):
-        self.solute_indices = solute_indices[:, 0]
-        self.solvent_indices = solvent_indices[:, 0]
-        self.n_shells = n_shells
-        self.shell_width = shell_width
-        self.periodic = periodic
-        self.n_solute = len(self.solute_indices)
-        self.n_features = self.n_solute * self.n_shells
-
-    def featurize(self, traj):
-        n_shell = self.n_shells
-        shell_w = self.shell_width
-        shell_edges = np.linspace(0, shell_w * (n_shell + 1),
-                                  num=(n_shell + 1), endpoint=True)
-        shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell))
-        atom_pairs = np.zeros((len(self.solvent_indices), 2))
-
-        for i, solute_i in enumerate(self.solute_indices):
-            # For each solute atom, calculate distance to all solvent
-            # molecules
-            atom_pairs[:, 0] = solute_i
-            atom_pairs[:, 1] = self.solvent_indices
-
-            distances = md.compute_distances(traj, atom_pairs, periodic=True)
-            for j, fdist in enumerate(distances):
-                hist, _ = np.histogram(fdist, bins=shell_edges)
-                shellcounts[j, i, :] = hist
-
-        return shellcounts
-
-
 class SolventShellsAssignmentFeaturizer(Featurizer):
     def __init__(self, solute_indices, solvent_indices, n_shells, shell_width,
                  periodic=True):
