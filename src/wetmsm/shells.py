@@ -9,6 +9,32 @@ from mcmd import mcmd
 
 
 class SolventShellsAssignmentFeaturizer(Featurizer):
+    """Bin solvent atoms into spherical shells around solute atoms.
+
+    Parameters
+    ----------
+    solute_indices : np.ndarray, shape=(n_solute,1)
+        Indices of solute atoms
+    solvent_indices : np.ndarray, shape=(n_solvent, 1)
+        Indices of solvent atoms
+    n_shells : int
+        Number of shells to consider around each solute atom
+    shell_width : float
+        The width of each solvent atom
+    periodic : bool
+        Whether to consider a periodic system in distance calculations
+
+    Returns
+    -------
+    assignments : np.ndarray, shape=(n_frames, n_solvent, n_solute, n_shells)
+        True if solvent_i is in shell_i of solute_i at frame_i
+    shellcounts : np.ndarray, shape=(n_frames, n_solute, n_shells)
+        Number of solvent atoms in shell_i around solute_i at frame_i
+
+    References
+    ----------
+    """
+
     def __init__(self, solute_indices, solvent_indices, n_shells, shell_width,
                  periodic=True):
         self.solute_indices = solute_indices[:, 0]
@@ -54,6 +80,8 @@ class SolventShellsComputation(mcmd.Parsable):
 
     :attr solvent_indices_fn: Path to solvent indices file
     :attr solute_indices_fn: Path to solute indices file.
+    :attr n_shells: Number of shells to do
+    :attr shell_width: Width of each shell
     """
     solute_indices = None
     solute_indices_fn = 'solute_indices.dat'

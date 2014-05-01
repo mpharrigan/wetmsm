@@ -40,7 +40,11 @@ import stat
 
 
 class MakeShellsJobsCommand(mcmd.Parsable):
-    """Subcommand for making solvent shells jobs."""
+    """Subcommand for making solvent shells jobs.
+
+    :attrib n_shells: Number of shells
+    :attrib shell_width: Width of each shell
+    """
 
     n_shells = 6
     shell_width = 0.3
@@ -57,7 +61,6 @@ class MakeShellsJobsCommand(mcmd.Parsable):
             format_dict = dict(
                 vars(mk_job_cmd).items() + vars(self).items() +
                 [('hours', 24), ('traj_fn', fn), ('work_dir', dn)])
-
 
             # Write the job file
             with open(jobfn, 'w') as job_f:
@@ -77,9 +80,9 @@ class MakeShellsJobsCommand(mcmd.Parsable):
 
 
 class MakeJobsCommand(mcmd.Parsable):
-    """Make jobs for solvent fingerprinting.
+    """Make jobs for solvent fingerprinting. One job / trajectory
 
-
+    :attrib traj_glob: A glob string for finding trajectories
     """
 
     _subparsers = {MakeShellsJobsCommand: 'shells'}
@@ -103,6 +106,7 @@ class MakeJobsCommand(mcmd.Parsable):
 
 
 def parse():
+    """Parse command line arguments."""
     p = mcmd.parsify(MakeJobsCommand)
     p.main()
 

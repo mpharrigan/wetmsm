@@ -2,6 +2,7 @@ __author__ = 'harrigan'
 
 import argparse
 
+# Maximum length of the short names (one-dash arguments)
 MAXSHORT = 3
 
 
@@ -28,6 +29,9 @@ def get_attribute_help(docstring):
 
     We expect lines of the form
     :attrib [atrribute_name]: help text
+
+    :param docstring: The docstring to parse
+    :returns: A dictionary of (attribute, help_text)
     """
     docdict = dict()
     linesplits = docstring.splitlines()
@@ -47,7 +51,6 @@ def generate_atributes(var_dict):
     """Yield attributes by iterating over a dictionary of class attributes.
 
     :param var_dict: found from vars(class)
-    :param max_short: The maximum length of the 'short form' of the option
     """
     attr_short_names = set()
     for attr in var_dict:
@@ -101,6 +104,9 @@ def generate_atributes(var_dict):
 def add_subparsers(c_obj, ap_parser):
     """Recurse down subparsers.
 
+    :param c_obj: Find subparsers for this class
+    :param ap_parser: Add subparsers to this argparse.ArgumentParser
+
     :returns: True if we added subparsers
     """
     if hasattr(c_obj, '_subparsers'):
@@ -116,9 +122,14 @@ def add_subparsers(c_obj, ap_parser):
 
 
 def add_to_parser(c_obj, parser):
-    """Add all attributes from an object to a given argparse.ArgumentParser."""
+    """Add all attributes from an object to a given argparse.ArgumentParser.
+
+    :param c_obj: Add attributes from this class
+    :param parser: Add attributes to this argparse.ArgumentParser
+    """
 
     if not add_subparsers(c_obj, parser):
+        # Only set_defaults for 'leaf' subparsers
         parser.set_defaults(c_obj=c_obj)
 
     docdict = get_attribute_help(c_obj.__doc__)
@@ -142,7 +153,10 @@ def add_to_parser(c_obj, parser):
 
 
 def parsify(c_obj):
-    """Take an object and make all of its attributes command line options."""
+    """Take an object and make all of its attributes command line options.
+
+    :param c_obj: A class to parse
+    """
 
     first_doc_line = c_obj.__doc__.splitlines()[0]
 
