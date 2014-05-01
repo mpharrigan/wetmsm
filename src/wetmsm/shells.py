@@ -128,6 +128,9 @@ class SolventShellsComputation(mcmd.Parsable):
 
     def save_features(self):
         """Save solvent fingerprints to a numpy array."""
+
+        # TODO: Don't overwrite by default. Don't do computation if these exist
+
         with open(self.counts_out_fn, 'w') as f:
             np.save(f, self.feat_counts)
         with open(self.assign_out_fn, 'w') as f:

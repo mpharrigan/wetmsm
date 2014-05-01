@@ -2,9 +2,13 @@ __author__ = 'harrigan'
 
 import argparse
 
+MAXSHORT = 3
+
+
 class Parsable(object):
     """Mixin to make as parsable."""
     _is_parsable = True
+
 
 class Attrib(object):
     """Container object for command line attributes."""
@@ -39,7 +43,7 @@ def get_attribute_help(docstring):
     return docdict
 
 
-def generate_atributes(var_dict, max_short):
+def generate_atributes(var_dict):
     """Yield attributes by iterating over a dictionary of class attributes.
 
     :param var_dict: found from vars(class)
@@ -48,17 +52,18 @@ def generate_atributes(var_dict, max_short):
     attr_short_names = set()
     for attr in var_dict:
 
-        ao = Attrib()
 
         # Ignore private
         if attr.startswith('_'):
             continue
 
+        ao = Attrib()
+
         # Figure out short name
         underscores = attr.split('_')
         maxl = max(len(us) for us in underscores)
 
-        for short_i in range(1, min(maxl, max_short)):
+        for short_i in range(1, min(maxl, MAXSHORT)):
             attr_short_name = ''.join([us[:short_i] for us in underscores])
             if attr_short_name not in attr_short_names:
                 attr_short_names.add(attr_short_name)
@@ -93,16 +98,31 @@ def generate_atributes(var_dict, max_short):
         yield ao
 
 
-def parsify(c_obj, max_short=3):
-    """Take an object and make all of its attributes command line options."""
+def add_subparsers(c_obj, ap_parser):
+    """Recurse down subparsers.
 
-    first_doc_line = c_obj.__doc__.splitlines()[0]
+    :returns: True if we added subparsers
+    """
+    if hasattr(c_obj, '_subparsers'):
+        ap_subparsers = ap_parser.add_subparsers()
+        for sub_cobj, pretty_name in c_obj._subparsers.items():
+            ap_sp = ap_subparsers.add_parser(pretty_name,
+                                             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+            add_to_parser(sub_cobj, ap_sp)
 
-    parser = argparse.ArgumentParser(description=first_doc_line,
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        return True
+    else:
+        return False
+
+
+def add_to_parser(c_obj, parser):
+    """Add all attributes from an object to a given argparse.ArgumentParser."""
+
+    if not add_subparsers(c_obj, parser):
+        parser.set_defaults(c_obj=c_obj)
 
     docdict = get_attribute_help(c_obj.__doc__)
-    for ao in generate_atributes(vars(c_obj), max_short):
+    for ao in generate_atributes(vars(c_obj)):
 
         try:
             ao.helptxt = docdict[ao.varname]
@@ -119,6 +139,17 @@ def parsify(c_obj, max_short=3):
             parser.add_argument(ao.long_name, metavar=ao.metavar,
                                 default=ao.defval, type=ao.dtype,
                                 help=ao.helptxt)
+
+
+def parsify(c_obj):
+    """Take an object and make all of its attributes command line options."""
+
+    first_doc_line = c_obj.__doc__.splitlines()[0]
+
+    parser = argparse.ArgumentParser(description=first_doc_line,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    add_to_parser(c_obj, parser)
+
     c_inst = c_obj()
     parser.parse_args(namespace=c_inst)
     return c_inst
