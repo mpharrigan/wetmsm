@@ -73,7 +73,7 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
 
                 # Build assignments
                 frame_solv = np.asarray(np.where(shell_bool)).T
-                solu_shell = np.zeros((len(frame_solv, 2)), dtype=int)
+                solu_shell = np.zeros((len(frame_solv), 2), dtype=int)
                 solu_shell[:, 0] = i
                 solu_shell[:, 1] = j
                 assignments_chunk = np.hstack((frame_solv, solu_shell))
