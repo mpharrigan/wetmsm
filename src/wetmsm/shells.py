@@ -26,8 +26,10 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
 
     Returns
     -------
-    assignments : np.ndarray, shape=(n_frames, n_solvent, n_solute, n_shells)
-        True if solvent_i is in shell_i of solute_i at frame_i
+    assignments : np.ndarray, shape=(x, 4)
+        Each row corresponds to an assignment of a solvent atom to a shell
+        belonging to a solute atom at a certain frame:
+        (frame_i, solvent_i, solute_i, shell_i)
     shellcounts : np.ndarray, shape=(n_frames, n_solute, n_shells)
         Number of solvent atoms in shell_i around solute_i at frame_i
 
@@ -52,9 +54,7 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
                                   num=(n_shell + 1), endpoint=True)
 
         atom_pairs = np.zeros((len(self.solvent_indices), 2))
-        assignments = np.zeros(
-            (traj.n_frames, len(self.solvent_indices), self.n_solute, n_shell),
-            dtype=bool)
+        assignments = list()
         shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell))
 
         for i, solute_i in enumerate(self.solute_indices):
@@ -69,9 +69,17 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
                     distances >= shell_edges[j],
                     distances < shell_edges[j + 1]
                 )
-                assignments[:, :, i, j] = shell_bool
                 shellcounts[:, i, j] = np.sum(shell_bool, axis=1)
 
+                # Build assignments
+                frame_solv = np.asarray(np.where(shell_bool)).T
+                solu_shell = np.zeros((len(frame_solv, 2)), dtype=int)
+                solu_shell[:, 0] = i
+                solu_shell[:, 1] = j
+                assignments_chunk = np.hstack((frame_solv, solu_shell))
+                assignments.append(assignments_chunk)
+
+        assignments = np.vstack(assignments)
         return assignments, shellcounts
 
 
