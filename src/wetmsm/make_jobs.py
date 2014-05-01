@@ -9,7 +9,7 @@ PBS_HEADER = """#!/bin/bash
 #PBS -j oe
 #PBS -M harrigan@stanford.edu
 #PBS -m ae
-#PBS -o $PBS_O_WORKDIR/{work_dir}
+#PBS -o {work_dir}
 
 : ${{PBS_O_WORKDIR="$PWD"}}
 cd $PBS_O_WORKDIR
