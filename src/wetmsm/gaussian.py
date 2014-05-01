@@ -1,3 +1,5 @@
+"""Apply Gaussian-kernel solvent fingerprint to a set of trajectories."""
+
 __author__ = 'harrigan'
 
 import mdtraj as md
@@ -6,9 +8,8 @@ import mixtape.featurizer
 from mcmd import mcmd
 
 
-class GaussianSolventComputation(object):
-    """
-    Do solvent fingerprinting on trajectories.
+class GaussianSolventComputation(mcmd.Parsable):
+    """Do solvent fingerprinting on trajectories.
 
 
     :attr solvent_indices_fn: Path to solvent indices file
@@ -24,6 +25,7 @@ class GaussianSolventComputation(object):
     featurizer = None
     feat_mat = None
     feature_out_fn = 'solventfp.npy'
+    trajs = None
 
     def load(self):
         """Load relevant data and create a featurizer object.
@@ -44,7 +46,7 @@ class GaussianSolventComputation(object):
     def featurize_all(self):
         """Featurize."""
         # Note: Later will add support for multiple trajectories
-        self.feat_mat = self.featurizer.featurize(self.traj[0])
+        self.feat_mat = self.featurizer.featurize(self.trajs[0])
 
     def save_features(self):
         """Save solvent fingerprints to a numpy array."""
@@ -59,6 +61,7 @@ class GaussianSolventComputation(object):
 
 
 def parse():
+    """Parse command line options."""
     gsc = mcmd.parsify(GaussianSolventComputation)
     gsc.main()
 
