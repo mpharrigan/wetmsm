@@ -82,7 +82,7 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
         return assignments, shellcounts
 
 
-class SolventShellsComputation(object):
+class SolventShellsComputation(mcmd.Parsable):
     """Do solvent fingerprinting on trajectories.
 
     :attr solvent_indices_fn: Path to solvent indices file

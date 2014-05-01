@@ -2,6 +2,9 @@ __author__ = 'harrigan'
 
 import argparse
 
+class Parsable(object):
+    """Mixin to make as parsable."""
+    _is_parsable = True
 
 class Attrib(object):
     """Container object for command line attributes."""

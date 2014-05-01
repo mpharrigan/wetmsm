@@ -8,7 +8,7 @@ import mixtape.featurizer
 from mcmd import mcmd
 
 
-class GaussianSolventComputation(object):
+class GaussianSolventComputation(mcmd.Parsable):
     """Do solvent fingerprinting on trajectories.
 
 
