@@ -53,9 +53,12 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
         shell_edges = np.linspace(0, shell_w * (n_shell + 1),
                                   num=(n_shell + 1), endpoint=True)
 
+        # TODO: Change this to yield
+
         atom_pairs = np.zeros((len(self.solvent_indices), 2))
         assignments = list()
-        shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell), dtype=int)
+        shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell),
+                               dtype=int)
 
         for i, solute_i in enumerate(self.solute_indices):
             # For each solute atom, calculate distance to all solvent
@@ -126,13 +129,18 @@ class SolventShellsComputation(mcmd.Parsable):
     def featurize_all(self):
         """Featurize."""
         # Note: Later will add support for multiple trajectories
+
+        # TODO: Add option to not overwrite / Don't do computation if these exist
+        # TODO: Save with tables
         self.feat_assn, self.feat_counts = self.featurizer.featurize(
             self.trajs[0])
 
     def save_features(self):
         """Save solvent fingerprints to a numpy array."""
 
-        # TODO: Don't overwrite by default. Don't do computation if these exist
+        # TODO: Add option to not overwrite / Don't do computation if these exist
+
+        # TODO: Remove this function; save with tables
 
         with open(self.counts_out_fn, 'w') as f:
             np.save(f, self.feat_counts)
@@ -143,6 +151,8 @@ class SolventShellsComputation(mcmd.Parsable):
         """Main entry point for this script."""
         self.load()
         self.featurize_all()
+
+        # TODO: Save with tables
         self.save_features()
 
 
