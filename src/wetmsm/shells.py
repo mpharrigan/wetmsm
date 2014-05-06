@@ -55,7 +55,7 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
 
         atom_pairs = np.zeros((len(self.solvent_indices), 2))
         assignments = list()
-        shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell))
+        shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell), dtype=int)
 
         for i, solute_i in enumerate(self.solute_indices):
             # For each solute atom, calculate distance to all solvent

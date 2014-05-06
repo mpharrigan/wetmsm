@@ -86,7 +86,7 @@ class MakeJobsCommand(mcmd.Parsable):
     """
 
     _subparsers = {MakeShellsJobsCommand: 'shells'}
-    traj_glob = 'trajs/SYS*/0_centered.xtc'
+    traj_glob = 'data/SYS*/0_centered.xtc'
     solute_indices_fn = 'solute_indices.dat'
     solvent_indices_fn = 'solvent_indices.dat'
     traj_top = str
