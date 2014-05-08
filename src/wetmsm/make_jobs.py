@@ -90,8 +90,8 @@ class MakeJobsCommand(mcmd.Parsable):
     solute_indices_fn = 'solute_indices.dat'
     solvent_indices_fn = 'solvent_indices.dat'
     traj_top = str
-    counts_out_fn = 'shell_count.npy'
-    assign_out_fn = 'shell_assign.npy'
+    counts_out_fn = 'shell_count.h5'
+    assign_out_fn = 'shell_assign.h5'
 
     def main(self):
         # Call subcommand

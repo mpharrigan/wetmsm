@@ -6,6 +6,7 @@ import mdtraj as md
 import numpy as np
 from mixtape.featurizer import Featurizer
 from mcmd import mcmd
+import tables
 
 
 class SolventShellsAssignmentFeaturizer(Featurizer):
@@ -47,15 +48,21 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
         self.n_solute = len(self.solute_indices)
         self.n_features = self.n_solute * self.n_shells
 
+        self.shell_counts = None
+
     def featurize(self, traj):
+
+        # Set up parameters
         n_shell = self.n_shells
         shell_w = self.shell_width
         shell_edges = np.linspace(0, shell_w * (n_shell + 1),
                                   num=(n_shell + 1), endpoint=True)
 
+
+        # Initialize arrays
         atom_pairs = np.zeros((len(self.solvent_indices), 2))
-        assignments = list()
-        shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell), dtype=int)
+        shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell),
+                               dtype=int)
 
         for i, solute_i in enumerate(self.solute_indices):
             # For each solute atom, calculate distance to all solvent
@@ -64,23 +71,27 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
             atom_pairs[:, 1] = self.solvent_indices
 
             distances = md.compute_distances(traj, atom_pairs, periodic=True)
+
             for j in xrange(n_shell):
+                # For each shell, do boolean logic
                 shell_bool = np.logical_and(
                     distances >= shell_edges[j],
                     distances < shell_edges[j + 1]
                 )
+                # And count the number in this shell
                 shellcounts[:, i, j] = np.sum(shell_bool, axis=1)
 
-                # Build assignments
+                # Build assignments chunk
                 frame_solv = np.asarray(np.where(shell_bool)).T
                 solu_shell = np.zeros((len(frame_solv), 2), dtype=int)
                 solu_shell[:, 0] = i
                 solu_shell[:, 1] = j
                 assignments_chunk = np.hstack((frame_solv, solu_shell))
-                assignments.append(assignments_chunk)
 
-        assignments = np.vstack(assignments)
-        return assignments, shellcounts
+                yield assignments_chunk
+
+        # Put this in an attribute
+        self.shell_counts = shellcounts
 
 
 class SolventShellsComputation(mcmd.Parsable):
@@ -102,8 +113,8 @@ class SolventShellsComputation(mcmd.Parsable):
     featurizer = None
     feat_assn = None
     feat_counts = None
-    counts_out_fn = 'shell_count.npy'
-    assign_out_fn = 'shell_assign.npy'
+    counts_out_fn = 'shell_count.h5'
+    assign_out_fn = 'shell_assign.h5'
     trajs = None
 
     def load(self):
@@ -126,24 +137,39 @@ class SolventShellsComputation(mcmd.Parsable):
     def featurize_all(self):
         """Featurize."""
         # Note: Later will add support for multiple trajectories
-        self.feat_assn, self.feat_counts = self.featurizer.featurize(
-            self.trajs[0])
 
-    def save_features(self):
-        """Save solvent fingerprints to a numpy array."""
+        # TODO: Add option to not overwrite / Don't do computation if these exist
 
-        # TODO: Don't overwrite by default. Don't do computation if these exist
+        # Use compression
+        filters = tables.Filters(complevel=5, complib='zlib')
 
-        with open(self.counts_out_fn, 'w') as f:
-            np.save(f, self.feat_counts)
-        with open(self.assign_out_fn, 'w') as f:
-            np.save(f, self.feat_assn)
+        # Set up assignments hdf5 file
+        assn_h = tables.open_file(self.assign_out_fn, 'w')
+        assn_ea = assn_h.create_earray(assn_h.root, 'assignments',
+                                       atom=tables.UIntAtom(), shape=(0, 4),
+                                       filters=filters)
+
+        # Save in chunks
+        for assn_chunk in self.featurizer.featurize(self.trajs[0]):
+            assn_ea.append(assn_chunk)
+
+        # Close that file
+        assn_h.close()
+
+        # Save shell counts
+        counts_h = tables.open_file(self.counts_out_fn, 'w')
+        counts_shape = self.featurizer.shell_counts.shape
+        counts_ca = counts_h.create_carray(counts_h.root, 'shell_counts',
+                                           atom=tables.UIntAtom(),
+                                           shape=counts_shape, filters=filters)
+        counts_ca[...] = self.featurizer.shell_counts
+        counts_h.close()
+
 
     def main(self):
         """Main entry point for this script."""
         self.load()
         self.featurize_all()
-        self.save_features()
 
 
 def parse():
