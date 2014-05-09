@@ -75,8 +75,8 @@ class MakeShellsJobsCommand(mcmd.Parsable):
             jobfn = os.path.join(dn, SHELLS_JOB_FN.format(traj_basename=fn))
 
             fmt = dict()
-            fmt['n_shells'] = self.n_shells
-            fmt['shell_width'] = self.shell_width
+            fmt['n_shells'] = mk_job_cmd.n_shells
+            fmt['shell_width'] = mk_job_cmd.shell_width
             fmt['counts_out_fn'] = mk_job_cmd.counts_out_fn.format(traj_fn=fn)
             fmt['assign_out_fn'] = mk_job_cmd.assign_out_fn.format(traj_fn=fn)
             fmt['traj_top'] = mk_job_cmd.traj_top
