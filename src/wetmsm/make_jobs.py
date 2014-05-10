@@ -37,6 +37,24 @@ from mcmd import mcmd
 import glob
 import os
 import stat
+import logging
+
+log = logging.getLogger()
+log.addHandler(logging.StreamHandler())
+log.setLevel(logging.INFO)
+
+
+def _files_exist(base_dir, *fns):
+    """Return true only if all files do not exist
+
+    :param base_dir: Filenames relative to here
+    :param fns: Filenames
+    """
+    for fn in fns:
+        if not os.path.exists(os.path.join(base_dir, fn)):
+            return False
+    else:
+        return True
 
 
 class MakeShellsJobsCommand(mcmd.Parsable):
@@ -53,21 +71,36 @@ class MakeShellsJobsCommand(mcmd.Parsable):
         submit_lines = []
 
         for dn, fn in mk_job_cmd.get_trajs():
-            print dn, fn
             # Make a job filename
             jobfn = os.path.join(dn, SHELLS_JOB_FN.format(traj_basename=fn))
 
-            # Options are class attributes plus some configurables
-            format_dict = dict(
-                vars(mk_job_cmd).items() + vars(self).items() +
-                [('hours', 24), ('traj_fn', fn), ('work_dir', dn)])
+            fmt = dict()
+            fmt['n_shells'] = mk_job_cmd.n_shells
+            fmt['shell_width'] = mk_job_cmd.shell_width
+            fmt['counts_out_fn'] = mk_job_cmd.counts_out_fn.format(traj_fn=fn)
+            fmt['assign_out_fn'] = mk_job_cmd.assign_out_fn.format(traj_fn=fn)
+            fmt['traj_top'] = mk_job_cmd.traj_top
+            fmt['traj_fn'] = fn
+            fmt['work_dir'] = dn
+            fmt['solute_indices_fn'] = mk_job_cmd.solute_indices_fn
+            fmt['solvent_indices_fn'] = mk_job_cmd.solvent_indices_fn
+            fmt['hours'] = 24
+
+            # Check if it exists
+            if _files_exist(dn, fmt['counts_out_fn'], fmt['assign_out_fn']):
+                log.warn("Output files exist. Skipping %s",
+                         os.path.join(dn, fn))
+                continue
 
             # Write the job file
             with open(jobfn, 'w') as job_f:
-                job_f.write(SHELLS_JOB.format(**format_dict))
+                job_f.write(SHELLS_JOB.format(**fmt))
 
             # Keep track for submit script
             submit_lines += [SUBMIT_LINE.format(jobfn=jobfn)]
+
+            # Tell the world
+            log.info('Created job for %s', os.path.join(dn, fn))
 
         # Put a newline at end of file
         submit_lines += ['']
@@ -90,8 +123,8 @@ class MakeJobsCommand(mcmd.Parsable):
     solute_indices_fn = 'solute_indices.dat'
     solvent_indices_fn = 'solvent_indices.dat'
     traj_top = str
-    counts_out_fn = 'shell_count.h5'
-    assign_out_fn = 'shell_assign.h5'
+    counts_out_fn = 'shells-{traj_fn}_count.h5'
+    assign_out_fn = 'shells-{traj_fn}_assign.h5'
 
     def main(self):
         # Call subcommand
