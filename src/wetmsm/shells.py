@@ -58,7 +58,6 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
         shell_edges = np.linspace(0, shell_w * (n_shell + 1),
                                   num=(n_shell + 1), endpoint=True)
 
-
         # Initialize arrays
         atom_pairs = np.zeros((len(self.solvent_indices), 2))
         shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell),
