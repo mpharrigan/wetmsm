@@ -5,7 +5,7 @@ __author__ = 'harrigan'
 import mdtraj as md
 import numpy as np
 from mixtape.featurizer import Featurizer
-from mcmd import mcmd
+import mcmd
 import tables
 
 
@@ -72,7 +72,7 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
 
             distances = md.compute_distances(traj, atom_pairs, periodic=True)
 
-            for j in xrange(n_shell):
+            for j in range(n_shell):
                 # For each shell, do boolean logic
                 shell_bool = np.logical_and(
                     distances >= shell_edges[j],
@@ -97,25 +97,36 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
 class SolventShellsComputation(mcmd.Parsable):
     """Do solvent fingerprinting on trajectories.
 
-    :attr solvent_indices_fn: Path to solvent indices file
-    :attr solute_indices_fn: Path to solute indices file.
-    :attr n_shells: Number of shells to do
-    :attr shell_width: Width of each shell
+    :param solvent_indices_fn: Path to solvent indices file
+    :param solute_indices_fn: Path to solute indices file.
+    :param n_shells: Number of shells to do
+    :param shell_width: Width of each shell
+    :param traj_fn: Trajectory filename
+    :param traj_top: Trajectory topology
+    :param counts_out_fn: Save total counts for each shell here
+    :param assign_out_fn: Save assignments of solvent to shells here
     """
-    solute_indices = None
-    solute_indices_fn = 'solute_indices.dat'
-    solvent_indices = None
-    solvent_indices_fn = 'solvent_indices.dat'
-    n_shells = 3
-    shell_width = 0.3
-    traj_fn = str
-    traj_top = str
-    featurizer = None
-    feat_assn = None
-    feat_counts = None
-    counts_out_fn = 'shell_count.h5'
-    assign_out_fn = 'shell_assign.h5'
-    trajs = None
+
+    def __init__(self, solute_indices_fn='solute_indices.dat',
+                 solvent_indices_fn='solvent_indices.dat', n_shells=5,
+                 shell_width=0.2, traj_fn="", traj_top="",
+                 counts_out_fn='shell_count.h5',
+                 assign_out_fn='shell_assign.h5'):
+        self.solute_indices = None
+        self.solute_indices_fn = solute_indices_fn
+        self.solvent_indices = None
+        self.solvent_indices_fn = solvent_indices_fn
+        self.n_shells = n_shells
+        self.shell_width = shell_width
+        self.traj_fn = traj_fn
+        self.traj_top = traj_top
+        self.featurizer = None
+        self.feat_assn = None
+        self.feat_counts = None
+        self.counts_out_fn = counts_out_fn
+        self.assign_out_fn = assign_out_fn
+        self.trajs = None
+
 
     def load(self):
         """Load relevant data and create a featurizer object.
@@ -133,6 +144,7 @@ class SolventShellsComputation(mcmd.Parsable):
             self.n_shells,
             self.shell_width,
             periodic=True)
+
 
     def featurize_all(self):
         """Featurize."""

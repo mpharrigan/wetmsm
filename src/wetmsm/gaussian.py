@@ -5,7 +5,7 @@ __author__ = 'harrigan'
 import mdtraj as md
 import numpy as np
 import mixtape.featurizer
-from mcmd import mcmd
+import mcmd
 
 
 class GaussianSolventComputation(mcmd.Parsable):
@@ -15,17 +15,22 @@ class GaussianSolventComputation(mcmd.Parsable):
     :attr solvent_indices_fn: Path to solvent indices file
     :attr solute_indices_fn: Path to solute indices file.
     """
-    solute_indices = None
-    solute_indices_fn = 'solute_indices.dat'
-    solvent_indices = None
-    solvent_indices_fn = 'solvent_indices.dat'
-    sigma = 0.5
-    traj_fn = str
-    traj_top = str
-    featurizer = None
-    feat_mat = None
-    feature_out_fn = 'solventfp.npy'
-    trajs = None
+
+    def __init__(self, solute_indices_fn='solute_indices.dat',
+                 solvent_indices_fn='solvent_indices.dat',
+                 sigma=0.5, traj_fn='', traj_top='',
+                 feature_out_fn='solventfp.npy'):
+        self.solute_indices = None
+        self.solute_indices_fn = solute_indices_fn
+        self.solvent_indices = None
+        self.solvent_indices_fn = solvent_indices_fn
+        self.sigma = sigma
+        self.traj_fn = traj_fn
+        self.traj_top = traj_top
+        self.featurizer = None
+        self.feat_mat = None
+        self.feature_out_fn = feature_out_fn
+        self.trajs = None
 
     def load(self):
         """Load relevant data and create a featurizer object.

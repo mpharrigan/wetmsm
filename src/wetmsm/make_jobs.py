@@ -33,11 +33,11 @@ SHELLS_JOB_FN = "shells-{traj_basename}.job"
 
 SUBMIT_LINE = "mqsub {jobfn}"
 
-from mcmd import mcmd
 import glob
 import os
 import stat
 import logging
+import mcmd
 
 log = logging.getLogger()
 log.addHandler(logging.StreamHandler())
@@ -64,8 +64,9 @@ class MakeShellsJobsCommand(mcmd.Parsable):
     :attrib shell_width: Width of each shell
     """
 
-    n_shells = 6
-    shell_width = 0.3
+    def __init__(self, n_shells=5, shell_width=0.2):
+        self.n_shells = n_shells
+        self.shell_width = shell_width
 
     def main(self, mk_job_cmd):
         submit_lines = []
@@ -119,12 +120,19 @@ class MakeJobsCommand(mcmd.Parsable):
     """
 
     _subparsers = {MakeShellsJobsCommand: 'shells'}
-    traj_glob = 'data/SYS*/0_centered.xtc'
-    solute_indices_fn = 'solute_indices.dat'
-    solvent_indices_fn = 'solvent_indices.dat'
-    traj_top = str
-    counts_out_fn = 'shells-{traj_fn}_count.h5'
-    assign_out_fn = 'shells-{traj_fn}_assign.h5'
+
+
+    def __init__(self, traj_glob='data/SYS*/0_centered.xtc',
+                 solute_indices_fn='solute_indices.dat',
+                 solvent_indices_fn='solvent_indices.dat', traj_top='',
+                 counts_out_fn='shells-{traj_fn}_count.h5',
+                 assign_out_fn='shells-{traj_fn}_assign.h5'):
+        self.traj_glob = traj_glob
+        self.solute_indices_fn = solute_indices_fn
+        self.solvent_indices_fn = solvent_indices_fn
+        self.traj_top = traj_top
+        self.counts_out_fn = counts_out_fn
+        self.assign_out_fn = assign_out_fn
 
     def main(self):
         # Call subcommand
