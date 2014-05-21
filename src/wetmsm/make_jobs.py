@@ -57,34 +57,64 @@ def _files_exist(base_dir, *fns):
         return True
 
 
-class MakeShellsJobsCommand(mcmd.Parsable):
-    """Subcommand for making solvent shells jobs.
+class MakeJobsCommand(mcmd.Parsable):
+    """Make jobs for solvent fingerprinting. One job / trajectory
 
-    :attrib n_shells: Number of shells
-    :attrib shell_width: Width of each shell
+    :param traj_glob: A glob string for finding trajectories
     """
 
-    def __init__(self, n_shells=5, shell_width=0.2):
+
+    def __init__(self, traj_glob='data/SYS*/0_centered.xtc',
+                 solute_indices_fn='solute_indices.dat',
+                 solvent_indices_fn='solvent_indices.dat', traj_top='',
+                 counts_out_fn='shells-{traj_fn}_count.h5',
+                 assign_out_fn='shells-{traj_fn}_assign.h5'):
+        self.traj_glob = traj_glob
+        self.solute_indices_fn = solute_indices_fn
+        self.solvent_indices_fn = solvent_indices_fn
+        self.traj_top = traj_top
+        self.counts_out_fn = counts_out_fn
+        self.assign_out_fn = assign_out_fn
+
+    def get_trajs(self):
+        for traj_fn in glob.iglob(self.traj_glob):
+            dirname = os.path.dirname(traj_fn)
+            basename = os.path.basename(traj_fn)
+            yield dirname, basename
+
+
+class MakeShellsJobsCommand(MakeJobsCommand):
+    """Subcommand for making solvent shells jobs.
+
+    :param n_shells: Number of shells
+    :param shell_width: Width of each shell
+    """
+
+    _subcommand_shortname = 'shells'
+
+    def __init__(self, n_shells=5, shell_width=0.2, **kwargs):
         self.n_shells = n_shells
         self.shell_width = shell_width
 
-    def main(self, mk_job_cmd):
+        super().__init__(**kwargs)
+
+    def main(self):
         submit_lines = []
 
-        for dn, fn in mk_job_cmd.get_trajs():
+        for dn, fn in self.get_trajs():
             # Make a job filename
             jobfn = os.path.join(dn, SHELLS_JOB_FN.format(traj_basename=fn))
 
             fmt = dict()
-            fmt['n_shells'] = mk_job_cmd.n_shells
-            fmt['shell_width'] = mk_job_cmd.shell_width
-            fmt['counts_out_fn'] = mk_job_cmd.counts_out_fn.format(traj_fn=fn)
-            fmt['assign_out_fn'] = mk_job_cmd.assign_out_fn.format(traj_fn=fn)
-            fmt['traj_top'] = mk_job_cmd.traj_top
+            fmt['n_shells'] = self.n_shells
+            fmt['shell_width'] = self.shell_width
+            fmt['counts_out_fn'] = self.counts_out_fn.format(traj_fn=fn)
+            fmt['assign_out_fn'] = self.assign_out_fn.format(traj_fn=fn)
+            fmt['traj_top'] = self.traj_top
             fmt['traj_fn'] = fn
             fmt['work_dir'] = dn
-            fmt['solute_indices_fn'] = mk_job_cmd.solute_indices_fn
-            fmt['solvent_indices_fn'] = mk_job_cmd.solvent_indices_fn
+            fmt['solute_indices_fn'] = self.solute_indices_fn
+            fmt['solvent_indices_fn'] = self.solvent_indices_fn
             fmt['hours'] = 24
 
             # Check if it exists
@@ -111,39 +141,6 @@ class MakeShellsJobsCommand(mcmd.Parsable):
         # Make executable
         st = os.stat('submit.sh')
         os.chmod('submit.sh', st.st_mode | stat.S_IEXEC)
-
-
-class MakeJobsCommand(mcmd.Parsable):
-    """Make jobs for solvent fingerprinting. One job / trajectory
-
-    :attrib traj_glob: A glob string for finding trajectories
-    """
-
-    _subparsers = {MakeShellsJobsCommand: 'shells'}
-
-
-    def __init__(self, traj_glob='data/SYS*/0_centered.xtc',
-                 solute_indices_fn='solute_indices.dat',
-                 solvent_indices_fn='solvent_indices.dat', traj_top='',
-                 counts_out_fn='shells-{traj_fn}_count.h5',
-                 assign_out_fn='shells-{traj_fn}_assign.h5'):
-        self.traj_glob = traj_glob
-        self.solute_indices_fn = solute_indices_fn
-        self.solvent_indices_fn = solvent_indices_fn
-        self.traj_top = traj_top
-        self.counts_out_fn = counts_out_fn
-        self.assign_out_fn = assign_out_fn
-
-    def main(self):
-        # Call subcommand
-        subc = self.c_obj()
-        subc.main(self)
-
-    def get_trajs(self):
-        for traj_fn in glob.iglob(self.traj_glob):
-            dirname = os.path.dirname(traj_fn)
-            basename = os.path.basename(traj_fn)
-            yield dirname, basename
 
 
 def parse():
