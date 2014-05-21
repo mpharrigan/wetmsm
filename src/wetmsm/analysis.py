@@ -47,7 +47,7 @@ def prune_all(fp2d_all):
     log.info('Trimming %d features from all trajectories', len(to_delete[0]))
     fp2d_all_pruned = [np.delete(fp2d, to_delete, axis=1)
                        for fp2d in fp2d_all]
-    return fp2d_all_pruned
+    return fp2d_all_pruned, to_delete
 
 
 def normalize(fp3d, shell_w):

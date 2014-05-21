@@ -85,20 +85,24 @@ class TestPruneAll(unittest.TestCase):
         fp2d2 = np.copy(self.fp2d1)
         fp2d2[:, -1] = 8
 
-        out1, out2 = wetmsm.analysis.prune_all([self.fp2d1, fp2d2])
+        (out1, out2), to_delete = wetmsm.analysis.prune_all([self.fp2d1, fp2d2])
 
         self.assertEqual(out1.shape[1], 3)
         self.assertEqual(out2.shape[1], 3)
         self.assertEqual(out1.shape[0], 3)
         self.assertEqual(out2.shape[0], 3)
 
+        np.testing.assert_array_equal(to_delete, [[0,4]])
+
     def test_dontdelete(self):
         fp2d2 = np.copy(self.fp2d1)
         fp2d2[1, 0] = 83
 
-        out1, out2 = wetmsm.analysis.prune_all([self.fp2d1, fp2d2])
+        (out1, out2), to_delete = wetmsm.analysis.prune_all([self.fp2d1, fp2d2])
 
         self.assertEqual(out1.shape[1], 4)
         self.assertEqual(out2.shape[1], 4)
         self.assertEqual(out1.shape[0], 3)
         self.assertEqual(out2.shape[0], 3)
+
+        np.testing.assert_array_equal(to_delete, [[4]])
