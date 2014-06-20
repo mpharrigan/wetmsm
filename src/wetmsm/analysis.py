@@ -50,6 +50,25 @@ def prune_all(fp2d_all):
     return fp2d_all_pruned, to_delete
 
 
+def prune_all_dict(fp_dict):
+    """Prude a dictionary of feature trajectories."""
+    n_features = list(fp_dict.values())[0].shape[1]
+    n_trajs = len(fp_dict)
+    zero_variance = np.zeros((n_trajs, n_features), dtype=bool)
+
+    for i, (fn, fp2d) in enumerate(fp_dict.items()):
+        assert fp2d.shape[1] == n_features, 'Constant num features.'
+        zero_variance[i, :] = np.var(fp2d, axis=0) < EPS
+
+    to_delete = np.where(np.all(zero_variance, axis=0))
+
+    log.info('Trimming %d features from all trajectories', len(to_delete[0]))
+
+    fp2d_all_pruned = dict([(fn, np.delete(fp2d, to_delete, axis=1))
+                            for fn, fp2d in fp_dict.items()])
+    return fp2d_all_pruned, to_delete
+
+
 def normalize(fp3d, shell_w):
     """Normalize by 4 pi r^2 dr.
 
