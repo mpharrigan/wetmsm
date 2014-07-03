@@ -29,9 +29,9 @@ python -m wetmsm.shells -sw {shell_width} -tt {traj_top} -ns {n_shells} \\
 
 """
 
-SHELLS_JOB_FN = "shells-{traj_basename}.job"
-
-SUBMIT_LINE = "mqsub {jobfn}"
+# Optionally put a qsub command here to turn output
+# into a script that submits jobs
+SUBMIT_LINE = "{jobfn}"
 
 import glob
 import os
@@ -67,14 +67,16 @@ class MakeJobsCommand(mcmd.Parsable):
     def __init__(self, traj_glob='data/SYS*/0_centered.xtc',
                  solute_indices_fn='solute_indices.dat',
                  solvent_indices_fn='solvent_indices.dat', traj_top='',
-                 counts_out_fn='shells-{traj_fn}_count.h5',
-                 assign_out_fn='shells-{traj_fn}_assign.h5'):
+                 counts_out_fn='{traj_fn}.count.h5',
+                 assign_out_fn='{traj_fn}.assign.h5',
+                 job_out_fn='{traj_fn}.shell.job'):
         self.traj_glob = traj_glob
         self.solute_indices_fn = solute_indices_fn
         self.solvent_indices_fn = solvent_indices_fn
         self.traj_top = traj_top
         self.counts_out_fn = counts_out_fn
         self.assign_out_fn = assign_out_fn
+        self.job_out_fn = job_out_fn
 
     def get_trajs(self):
         for traj_fn in glob.iglob(self.traj_glob):
@@ -103,7 +105,7 @@ class MakeShellsJobsCommand(MakeJobsCommand):
 
         for dn, fn in self.get_trajs():
             # Make a job filename
-            jobfn = os.path.join(dn, SHELLS_JOB_FN.format(traj_basename=fn))
+            jobfn = os.path.join(dn, self.job_out_fn.format(traj_fn=fn))
 
             fmt = dict()
             fmt['n_shells'] = self.n_shells
@@ -135,12 +137,9 @@ class MakeShellsJobsCommand(MakeJobsCommand):
 
         # Put a newline at end of file
         submit_lines += ['']
-        with open('submit.sh', 'w') as sub_f:
+        with open('shells.job.list', 'w') as sub_f:
             sub_f.write('\n'.join(submit_lines))
 
-        # Make executable
-        st = os.stat('submit.sh')
-        os.chmod('submit.sh', st.st_mode | stat.S_IEXEC)
 
 
 def parse():
