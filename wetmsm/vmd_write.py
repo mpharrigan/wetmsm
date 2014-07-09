@@ -60,7 +60,20 @@ def _compute(assn, loading, to2d, n_frames, n_atoms, solvent_ind, stride):
 
 
     """
-    user = np.zeros((n_frames, n_atoms), dtype=np.float)
+
+    user = np.zeros((n_frames, n_atoms))
+
+    CHUNKSIZE = 1000000
+    n_chunks = assn.shape[0] // CHUNKSIZE
+
+    for chunk_i in range(n_chunks):
+        lala = assn.read(CHUNKSIZE * chunk_i, CHUNKSIZE * (chunk_i + 1))
+        print(chunk_i, lala.shape)
+        del lala
+
+
+
+def _compute_chunk(assn, solvent_ind, to2d, loading, user):
 
     for i in range(assn.shape[0]):
         fr = assn[i, 0]
@@ -68,9 +81,6 @@ def _compute(assn, loading, to2d, n_frames, n_atoms, solvent_ind, stride):
         ute_shell = to2d[(assn[i, 2], assn[i, 3])]
 
         user[fr, vent] += loading[ute_shell]
-
-    return user
-
 
 class VMDWriter(object):
     """Write VMD scripts to load tICA loadings into 'user' field.
