@@ -1,13 +1,14 @@
 """
-Write assignments to a vmd
+Using assignments, write data to the User field in vmd.
 """
+
+import os
+import logging
 
 import numpy as np
 import mcmd
 import tables
-import os
 
-import logging
 
 log = logging.getLogger()
 
@@ -71,7 +72,6 @@ class VMDWriter(object):
         self.n_solute = n_solute
         self.n_shells = n_shells
         self.n_atoms = n_atoms
-
 
     def compute(self, data, features_to_select, stride=1):
         """Compute loadings on each solvent atom for each frame
@@ -151,6 +151,9 @@ class VMDWriter(object):
 
 
 class VMDWriterCommand(mcmd.Parsable):
+    # TODO: This command is incomplete
+    # Do it by-hand in IPython for now
+
     def __init__(self, assn_fn='assign.h5',
                  solvent_ind_fn='solvent_indices.dat',
                  pruned_fn='fp2d_deleted.pickl', loading_data='.pickl',
@@ -164,12 +167,6 @@ class VMDWriterCommand(mcmd.Parsable):
 
         solute_ind = None
         solvent_ind = None
-
-
-#        vw = VMDWriter(assn, solvent_ind, n_frames, n_solute, n_solvent,
-#                       n_shells)
-#        vw.make_translation(deleted)
-
 
 
 def parse():
