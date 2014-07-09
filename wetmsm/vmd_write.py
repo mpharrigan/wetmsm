@@ -9,6 +9,8 @@ import numpy as np
 import mcmd
 import tables
 
+#from ._vmd_write import _compute, _translate
+
 
 log = logging.getLogger()
 
@@ -48,6 +50,28 @@ mol colupdate 1 top 1
 """
 
 
+def _compute(assn, loading, to2d, n_frames, n_atoms, solvent_ind, stride):
+    """Add "loading" to each relevant atom
+
+    :param assn: (M,4) array 'assignments' file
+        The columns are: frame, solvent, solute, shell (indices)
+
+    :param loading: Values to apply to relevant features
+
+
+    """
+    user = np.zeros((n_frames, n_atoms), dtype=np.float)
+
+    for i in range(assn.shape[0]):
+        fr = assn[i, 0]
+        vent = solvent_ind[assn[i, 1]]
+        ute_shell = to2d[(assn[i, 2], assn[i, 3])]
+
+        user[fr, vent] += loading[ute_shell]
+
+    return user
+
+
 class VMDWriter(object):
     """Write VMD scripts to load tICA loadings into 'user' field.
 
@@ -73,7 +97,7 @@ class VMDWriter(object):
         self.n_shells = n_shells
         self.n_atoms = n_atoms
 
-    def compute(self, data, features_to_select, stride=1):
+    def compute_old(self, data, features_to_select, stride=1):
         """Compute loadings on each solvent atom for each frame
 
         :param data: 1d array of feature loadings
@@ -98,7 +122,16 @@ class VMDWriter(object):
 
             yield towrite
 
-    def translate(self, deleted):
+    def compute(self, loading):
+        #TODO: Get rid of (or figure out) stride
+
+        user = _compute(self.assn, loading, self.to2d,
+                        self.n_frames, self.n_atoms,
+                        self.solvent_ind, stride=1)
+
+        return user
+
+    def set_up_translation(self, deleted):
         """Turn indices from one form to another ('2d' -- '3d')
 
         :param deleted: Indices of states that were pruned
