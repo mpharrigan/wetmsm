@@ -48,6 +48,17 @@ mol colupdate 1 top 1
 
 
 class VMDWriter(object):
+    """Write VMD scripts to load tICA loadings into 'user' field.
+
+    :param assn: Assignment array
+    :param solvent_ind: Solvent indices
+    :param n_frames: Number of frames. TODO: Why do we need this?
+    :param n_atoms: Number of *all* atoms. VMD needs a value for each atom
+    :param n_solute: Number of solute atoms
+    :param n_shells: Number of solvent shells. This is needed so we can
+        back out the correct shape of the fingerprint vector
+    """
+
     def __init__(self, assn, solvent_ind, n_frames, n_atoms, n_solute,
                  n_shells):
         self.assn = assn
@@ -83,7 +94,7 @@ class VMDWriter(object):
                 rows = np.where(logi)[0]
 
                 highlight = self.solvent_ind[assn1[rows, 1]]
-                towrite[highlight[:, 0]] += data[feati]
+                towrite[highlight[...]] += data[feati]
 
             yield towrite
 
