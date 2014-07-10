@@ -9,7 +9,7 @@ import numpy as np
 import mcmd
 import tables
 
-#from ._vmd_write import _compute, _translate
+from ._vmd_write import _compute_chunk
 
 
 log = logging.getLogger()
@@ -64,16 +64,22 @@ def _compute(assn, loading, to2d, n_frames, n_atoms, solvent_ind, stride):
     user = np.zeros((n_frames, n_atoms))
 
     CHUNKSIZE = 1000000
-    n_chunks = assn.shape[0] // CHUNKSIZE
+    n_chunks = assn.shape[0] // CHUNKSIZE + 1
+
+    print("Starting")
 
     for chunk_i in range(n_chunks):
         lala = assn.read(CHUNKSIZE * chunk_i, CHUNKSIZE * (chunk_i + 1))
         print(chunk_i, lala.shape)
+
+        _compute_chunk(lala, solvent_ind, to2d, loading, user)
         del lala
 
+    return user
 
 
-def _compute_chunk(assn, solvent_ind, to2d, loading, user):
+
+def _compute_chunk_py(assn, solvent_ind, to2d, loading, user):
 
     for i in range(assn.shape[0]):
         fr = assn[i, 0]
