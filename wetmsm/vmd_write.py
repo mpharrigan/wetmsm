@@ -1,5 +1,8 @@
 """
 Using assignments, write data to the User field in vmd.
+
+This involves writing a data file and a TCL script to get VMD
+to load in the data file.
 """
 
 import os
@@ -15,14 +18,17 @@ from ._vmd_write import _compute_chunk
 log = logging.getLogger()
 
 VMDSCRIPT = """
+# Load in molecule
 set mol [mol new {traj_fn} step {step} waitfor all]
 mol addfile {top_fn} waitfor all
 
+# Open data file
 set sel [atomselect $mol all]
 set nf [molinfo $mol get numframes]
 set fp [open {dat_fn} r]
 set line ""
 
+# Each line of the data file corresponds to a frame
 for {{set i 0}} {{$i < $nf}} {{incr i}} {{
   gets $fp line
   $sel frame $i
@@ -31,6 +37,8 @@ for {{set i 0}} {{$i < $nf}} {{incr i}} {{
 
 close $fp
 $sel delete
+
+# For convenience, set up representations as well
 
 mol delrep 0 top
 
@@ -50,7 +58,7 @@ mol colupdate 1 top 1
 """
 
 
-def _compute(assn, loading, to2d, n_frames, n_atoms, solvent_ind, stride):
+def _compute(assn, loading, to2d, n_frames, n_atoms, solvent_ind):
     """Add "loading" to each relevant atom
 
     :param assn: (M,4) array 'assignments' file
@@ -58,35 +66,52 @@ def _compute(assn, loading, to2d, n_frames, n_atoms, solvent_ind, stride):
 
     :param loading: Values to apply to relevant features
 
+    :param to2d: A dictionary that converts (solute, shell) indices
+        to 'feature' indices consistent with `loading`
+
+    # TODO: Would it make sense to turn `loading` into a 2d array instead?
+
+    :param n_frames: Number of frames. Needed to initialize the array
+    :param n_atoms: Number of atoms. Needed to initialize the array
+
+    :param solvent_ind: Indices of solvent atoms among all the atoms
+        instead of whatever indexing is used in `assn`
+
+    # TODO: Figure out what indexing is used in `assn`
+
+    :returns user: (n_frames, n_atoms) array of values. Write this
+        to a file that can be loaded into VMD.
 
     """
 
+    # Initialize
     user = np.zeros((n_frames, n_atoms))
 
+    # Deal with chunks of the pytables EARRAY
     CHUNKSIZE = 1000000
     n_chunks = assn.shape[0] // CHUNKSIZE + 1
 
-    print("Starting")
-
     for chunk_i in range(n_chunks):
-        lala = assn.read(CHUNKSIZE * chunk_i, CHUNKSIZE * (chunk_i + 1))
-        print(chunk_i, lala.shape)
+        chunk = assn.read(CHUNKSIZE * chunk_i, CHUNKSIZE * (chunk_i + 1))
+        log.debug("Chunk %d: %s", chunk_i, str(chunk.shape))
 
-        _compute_chunk(lala, solvent_ind, to2d, loading, user)
-        del lala
+        _compute_chunk(chunk, solvent_ind, to2d, loading, user)
+        del chunk
 
     return user
 
 
-
 def _compute_chunk_py(assn, solvent_ind, to2d, loading, user):
+    """Python implementation of _compute_chunk.
 
+    Use the cython version for speed.
+    """
     for i in range(assn.shape[0]):
         fr = assn[i, 0]
         vent = solvent_ind[assn[i, 1]]
         ute_shell = to2d[(assn[i, 2], assn[i, 3])]
-
         user[fr, vent] += loading[ute_shell]
+
 
 class VMDWriter(object):
     """Write VMD scripts to load tICA loadings into 'user' field.
@@ -113,37 +138,14 @@ class VMDWriter(object):
         self.n_shells = n_shells
         self.n_atoms = n_atoms
 
-    def compute_old(self, data, features_to_select, stride=1):
-        """Compute loadings on each solvent atom for each frame
-
-        :param data: 1d array of feature loadings
-        :param features_to_select: Which features to consider
-        :param stride: Do every n-th frame
-        """
-        assn = self.assn
-
-        for fr in range(0, self.n_frames, stride):
-            assn1 = assn[np.where(assn[:, 0] == fr)[0], ...]
-            towrite = np.zeros(self.n_atoms)
-
-            # Loop over features
-            for feati in features_to_select:
-                featu, feats = self.to3d[feati]
-                logi = np.logical_and(assn1[:, 2] == featu,
-                                      assn1[:, 3] == feats)
-                rows = np.where(logi)[0]
-
-                highlight = self.solvent_ind[assn1[rows, 1]]
-                towrite[highlight[...]] += data[feati]
-
-            yield towrite
 
     def compute(self, loading):
-        #TODO: Get rid of (or figure out) stride
+
+        # TODO: Move function into this class
 
         user = _compute(self.assn, loading, self.to2d,
                         self.n_frames, self.n_atoms,
-                        self.solvent_ind, stride=1)
+                        self.solvent_ind)
 
         return user
 
@@ -151,6 +153,8 @@ class VMDWriter(object):
         """Turn indices from one form to another ('2d' -- '3d')
 
         :param deleted: Indices of states that were pruned
+
+        :returns to3d, to2d: Dictionaries
         """
         to3d = {}
         to2d = {}
@@ -173,6 +177,8 @@ class VMDWriter(object):
 
     def write_dat(self, data, features_to_select, out_fn_base, traj_fn=None,
                   top_fn=None, stride=1):
+
+        # TODO: Get rid of this
 
         dat_out_fn = "{}.dat".format(out_fn_base)
         tcl_out_fn = "{}.tcl".format(out_fn_base)

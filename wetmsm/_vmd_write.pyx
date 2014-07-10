@@ -3,19 +3,13 @@ import numpy as np
 cimport numpy as np
 
 
-def  _compute_chunk(unsigned int[:, :] assn,
-              long[:] solvent_ind,
-              dict to2d,
-              double[:] loading,
-              double[:, :] user):
+def  _compute_chunk(
+        unsigned int[:, :] assn,
+        long[:] solvent_ind,
+        dict to2d,
+        double[:] loading,
+        double[:, :] user):
     """Add "loading" to each relevant atom
-
-    :param assn: (M,4) array 'assignments' file
-        The columns are: frame, solvent, solute, shell (indices)
-
-    :param loading: Values to apply to relevant features
-
-
     """
     cdef int fr, vent, ute_shell
 
@@ -25,7 +19,4 @@ def  _compute_chunk(unsigned int[:, :] assn,
         ute_shell = to2d[(assn[i, 2], assn[i, 3])]
 
         user[fr, vent] += loading[ute_shell]
-
-
-
 
