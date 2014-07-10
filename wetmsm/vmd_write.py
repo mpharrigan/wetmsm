@@ -58,18 +58,14 @@ mol colupdate 1 top 1
 """
 
 
-def _compute(assn, loading, to2d, n_frames, n_atoms, solvent_ind):
+def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind,
+             chunksize=1000000):
     """Add "loading" to each relevant atom
 
     :param assn: (M,4) array 'assignments' file
         The columns are: frame, solvent, solute, shell (indices)
 
-    :param loading: Values to apply to relevant features
-
-    :param to2d: A dictionary that converts (solute, shell) indices
-        to 'feature' indices consistent with `loading`
-
-    # TODO: Would it make sense to turn `loading` into a 2d array instead?
+    :param loading2d: Values to apply to relevant features
 
     :param n_frames: Number of frames. Needed to initialize the array
     :param n_atoms: Number of atoms. Needed to initialize the array
@@ -77,50 +73,44 @@ def _compute(assn, loading, to2d, n_frames, n_atoms, solvent_ind):
     :param solvent_ind: Indices of solvent atoms among all the atoms
         instead of whatever indexing is used in `assn`
 
-    # TODO: Figure out what indexing is used in `assn`
+    :param chunksize: How many rows to read at once.
+
 
     :returns user: (n_frames, n_atoms) array of values. Write this
         to a file that can be loaded into VMD.
 
     """
 
+    # TODO: Would it make sense to turn `loading` into a 2d array instead?
+    # TODO: Figure out what indexing is used in `assn`
     # Initialize
     user = np.zeros((n_frames, n_atoms))
 
     # Deal with chunks of the pytables EARRAY
-    CHUNKSIZE = 1000000
-    n_chunks = assn.shape[0] // CHUNKSIZE + 1
+    n_chunks = assn.shape[0] // chunksize + 1
 
     for chunk_i in range(n_chunks):
-        chunk = assn.read(CHUNKSIZE * chunk_i, CHUNKSIZE * (chunk_i + 1))
+        chunk = assn.read(chunksize * chunk_i, chunksize * (chunk_i + 1))
         log.debug("Chunk %d: %s", chunk_i, str(chunk.shape))
 
-        _compute_chunk(chunk, solvent_ind, to2d, loading, user)
+        _compute_chunk(chunk, solvent_ind, loading2d, user)
         del chunk
 
     return user
 
 
-def _compute_chunk_py(assn, solvent_ind, to2d, loading, user):
-    """Python implementation of _compute_chunk.
-
-    Use the cython version for speed.
-    """
-    for i in range(assn.shape[0]):
-        fr = assn[i, 0]
-        vent = solvent_ind[assn[i, 1]]
-        ute_shell = to2d[(assn[i, 2], assn[i, 3])]
-        user[fr, vent] += loading[ute_shell]
-
-
 class VMDWriter(object):
     """Write VMD scripts to load tICA loadings into 'user' field.
 
-    :param assn: Assignment array
-    :param solvent_ind: Solvent indices
-    :param n_frames: Number of frames. TODO: Why do we need this?
-    :param n_atoms: Number of *all* atoms. VMD needs a value for each atom
-    :param n_solute: Number of solute atoms
+    :param assn: (M,4) array 'assignments' file
+        The columns are: frame, solvent, solute, shell (indices)
+    :param n_frames: Number of frames. Needed to initialize the array
+    :param n_atoms: Number of all atoms. Needed to initialize the array
+
+    :param solvent_ind: Indices of solvent atoms among all the atoms
+        instead of whatever indexing is used in `assn`
+
+    :param n_solute: Number of solute atoms for translating from 2d to 3d
     :param n_shells: Number of solvent shells. This is needed so we can
         back out the correct shape of the fingerprint vector
     """
@@ -139,9 +129,17 @@ class VMDWriter(object):
         self.n_atoms = n_atoms
 
 
-    def compute(self, loading):
+    def compute(self, loading, deleted):
+        """Assign loadings to atoms based on an assignments file.
 
-        user = _compute(self.assn, loading, self.to2d,
+        :param loading: 1-d loadings (from tICA/PCA) which we apply
+            to relevant atoms
+
+        :param deleted: Indices (in 1d) of features that were removed
+            (likely due to low-variance) before performing tICA
+        """
+
+        user = _compute(self.assn, self.translate_loading(loading, deleted),
                         self.n_frames, self.n_atoms,
                         self.solvent_ind)
 
@@ -172,6 +170,29 @@ class VMDWriter(object):
         self.to3d = to3d
         self.to2d = to2d
         return to3d, to2d
+
+    def translate_loading(self, loading, deleted):
+        """Take 1-dim `loading` from tICA/PCA and expand to (solute, shell)
+        indexing.
+
+        :param loading: 1-d loadings (from tICA/PCA) which we apply
+            to relevant atoms
+
+        :param deleted: Indices (in 1d) of features that were removed
+            (likely due to low-variance) before performing tICA
+        """
+        loading2d = np.zeros((self.n_solute, self.n_shells))
+
+        i = 0
+        for ute in range(self.n_solute):
+            for sh in range(self.n_shells):
+                if not np.in1d(i, deleted):
+                    loading2d[ute, sh] = loading[i]
+                    i += 1
+                else:
+                    loading2d[ute, sh] = 0.0
+
+        return loading2d
 
     def write_dat(self, data, features_to_select, out_fn_base, traj_fn=None,
                   top_fn=None, stride=1):
