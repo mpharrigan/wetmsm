@@ -141,8 +141,6 @@ class VMDWriter(object):
 
     def compute(self, loading):
 
-        # TODO: Move function into this class
-
         user = _compute(self.assn, loading, self.to2d,
                         self.n_frames, self.n_atoms,
                         self.solvent_ind)

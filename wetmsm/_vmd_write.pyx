@@ -18,5 +18,8 @@ def  _compute_chunk(
         vent = solvent_ind[assn[i, 1]]
         ute_shell = to2d[(assn[i, 2], assn[i, 3])]
 
+        if ute_shell < 0:
+            raise ValueError('Deleted shell')
+
         user[fr, vent] += loading[ute_shell]
 
