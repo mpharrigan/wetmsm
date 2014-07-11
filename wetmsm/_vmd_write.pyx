@@ -6,7 +6,7 @@ cimport numpy as np
 def  _compute_chunk(
         unsigned int[:, :] assn,
         long[:] solvent_ind,
-        double[:] loading2d,
+        double[:, :] loading2d,
         double[:, :] user):
     """Add "loading" to each relevant atom
     """
