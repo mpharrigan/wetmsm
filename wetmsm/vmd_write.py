@@ -81,7 +81,6 @@ def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind,
 
     """
 
-    # TODO: Would it make sense to turn `loading` into a 2d array instead?
     # TODO: Figure out what indexing is used in `assn`
     # Initialize
     user = np.zeros((n_frames, n_atoms))
