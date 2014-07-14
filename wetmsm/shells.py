@@ -128,6 +128,11 @@ class SolventShellsComputation(mcmd.Parsable):
         self.assign_out_fn = assign_out_fn
         self.trajs = None
 
+    def __str__(self):
+        return "Shells: {traj_fn} with {n_shells} shells of width {shell_width} using {solute_indices_fn} and {solvent_indices_fn}".format(
+            **self.__dict__
+        )
+
 
     def load(self):
         """Load relevant data and create a featurizer object.
