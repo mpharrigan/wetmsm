@@ -32,28 +32,37 @@ class SolventShellsAnalysis():
 
     @property
     def seqs3d_unnormed(self):
+        """Unnormalized (input) sequences"""
         return self._seqs3d_unnormed
 
     @property
     def seqs3d(self):
+        """Normalized 3d sequences."""
         if self._seqs3d is None:
-            self._seqs3d = normalize(self.seqs3d_unnormed, self.shell_w)
+            self._seqs3d = [normalize(fp3d, self.shell_w) for fp3d in
+                            self.seqs3d_unnormed]
         return self._seqs3d
 
     @property
     def seqs2d_unpruned(self):
+        """Reshaped (2D) sequences."""
         if self._seqs2d_unpruned is None:
-            self._seqs2d_unpruned = reshape(self.seqs3d)
+            self._seqs2d_unpruned = [reshape(fp3d) for fp3d in self.seqs3d]
         return self._seqs2d_unpruned
 
     @property
     def seqs2d(self):
+        """Reshaped with zero-variance features removed.
+
+        Input this to tICA, MSM, etc.
+        """
         if self._seqs2d is None:
             self._seqs2d, self._deleted = prune_all(self.seqs2d_unpruned)
         return self._seqs2d
 
     @property
     def deleted(self):
+        """Which features (2d-indexing) we deleted."""
         if self._deleted is None:
             self._seqs2d, self._deleted = prune_all(self.seqs2d_unpruned)
         return self._deleted
@@ -64,6 +73,8 @@ def reshape(fp3d):
 
     We start with indices (frame, solute, shell) and convert to
     (frame, {solute*shell}), or alternatively (frame, feature)
+
+    :param fp3d: array of shape (n_frames, n_solute, n_shells)
     """
     n_frame, n_solute, n_shell = fp3d.shape
     fp2d = np.reshape(fp3d, (n_frame, n_solute * n_shell))
@@ -74,6 +85,8 @@ def prune_all(fp2d_all):
     """Prune a list of feature trajectories.
 
     Only remove a feature if it is zero in *all* trajectories.
+
+    :param fp2d_all: List of (n_frames, n_features) sequences.
     """
 
     assert len(fp2d_all) > 0, 'We expect a list'
@@ -95,6 +108,7 @@ def prune_all(fp2d_all):
 def normalize(fp3d, shell_w):
     """Normalize by 4 pi r^2 dr.
 
+    :param fp3d: array of shape (n_frames, n_solute, n_shells)
     :param shell_w: Shell width
     """
     _, _, n_shell = fp3d.shape
