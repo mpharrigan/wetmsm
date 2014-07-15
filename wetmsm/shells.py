@@ -48,7 +48,7 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
         self.n_solute = len(self.solute_indices)
         self.n_features = self.n_solute * self.n_shells
 
-    def featurize(self, traj):
+    def featurize(self, traj, frame_offset):
         """Featurize a trajectory using the solvent shells metric.
 
         Returns
@@ -92,6 +92,7 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
 
                 # Build assignments chunk
                 frame_solv = np.asarray(np.where(shell_bool)).T
+                frame_solv[:, 0] += frame_offset
                 solu_shell = np.zeros((len(frame_solv), 2), dtype=int)
 
                 # TODO: Why not store solute_i here?
@@ -184,8 +185,11 @@ class SolventShellsComputation(mcmd.Parsable):
                                            filters=filters)
 
         # Save in chunks
-        for chunk in md.iterload(self.traj_fn, top=self.traj_top, chunk=5000):
-            count_chunk, assn_chunk = self.featurizer.featurize(chunk)
+        chunksize = 5000
+        for i, chunk in enumerate(
+                md.iterload(self.traj_fn, top=self.traj_top, chunk=chunksize)):
+            count_chunk, assn_chunk = self.featurizer.featurize(chunk,
+                                                                i * chunksize)
             assn_ea.append(assn_chunk)
             counts_ea.append(count_chunk)
 
