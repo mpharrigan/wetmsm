@@ -2,6 +2,8 @@ __author__ = 'harrigan'
 
 import numpy as np
 import logging
+from mixtape.tica import tICA
+from mixtape.pca import PCA
 
 log = logging.getLogger()
 
@@ -29,6 +31,12 @@ class SolventShellsAnalysis():
         self._seqs2d = None
         self._deleted = None
         self.shell_w = shell_w
+
+        self.tica = None
+        self.pca = None
+
+        self.ticax = None
+        self.pcax = None
 
     @property
     def seqs3d_unnormed(self):
@@ -66,6 +74,18 @@ class SolventShellsAnalysis():
         if self._deleted is None:
             self._seqs2d, self._deleted = prune_all(self.seqs2d_unpruned)
         return self._deleted
+
+
+    def fit_tica(self, lag_time):
+        self.tica = tICA(n_components=10, lag_time=lag_time,
+                         weighted_transform=True)
+        self.tica.fit(self.seqs2d)
+        self.ticax = self.tica.transform(self.seqs2d)
+
+    def fit_pca(self):
+        self.pca = PCA(n_components=10)
+        self.pca.fit(self.seqs2d)
+        self.pcax = self.pca.transform(self.seqs2d)
 
 
 def reshape(fp3d):
