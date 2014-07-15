@@ -37,7 +37,7 @@ class SolventShellsAnalysis():
     @property
     def seqs3d(self):
         if self._seqs3d is None:
-            self._seqs3d = reshape(self.seqs3d_unnormed)
+            self._seqs3d = normalize(self.seqs3d_unnormed, self.shell_w)
         return self._seqs3d
 
     @property

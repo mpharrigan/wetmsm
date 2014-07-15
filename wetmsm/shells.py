@@ -163,6 +163,8 @@ class SolventShellsComputation(mcmd.Parsable):
 
         # TODO: Add option to not overwrite / Don't do computation if these exist
 
+        # TODO: Add shell width, number information to h5 file
+
         # Use compression
         filters = tables.Filters(complevel=5, complib='zlib')
 
