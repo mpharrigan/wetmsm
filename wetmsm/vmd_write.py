@@ -81,7 +81,6 @@ def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind,
 
     """
 
-    # TODO: Figure out what indexing is used in `assn`
     # Initialize
     user = np.zeros((n_frames, n_atoms))
 
@@ -182,14 +181,17 @@ class VMDWriter(object):
         """
         loading2d = np.zeros((self.n_solute, self.n_shells))
 
-        i = 0
+        absi = 0
+        pruni = 0
         for ute in range(self.n_solute):
             for sh in range(self.n_shells):
-                if not np.in1d(i, deleted):
-                    loading2d[ute, sh] = loading[i]
-                    i += 1
+                if not np.in1d(absi, deleted):
+                    loading2d[ute, sh] = loading[pruni]
+                    pruni += 1
                 else:
                     loading2d[ute, sh] = 0.0
+
+                absi += 1
 
         return loading2d
 
