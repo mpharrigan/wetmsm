@@ -1,5 +1,8 @@
 """
 Using assignments, write data to the User field in vmd.
+
+This involves writing a data file and a TCL script to get VMD
+to load in the data file.
 """
 
 import os
@@ -9,18 +12,23 @@ import numpy as np
 import mcmd
 import tables
 
+from ._vmd_write import _compute_chunk
+
 
 log = logging.getLogger()
 
 VMDSCRIPT = """
+# Load in molecule
 set mol [mol new {traj_fn} step {step} waitfor all]
 mol addfile {top_fn} waitfor all
 
+# Open data file
 set sel [atomselect $mol all]
 set nf [molinfo $mol get numframes]
 set fp [open {dat_fn} r]
 set line ""
 
+# Each line of the data file corresponds to a frame
 for {{set i 0}} {{$i < $nf}} {{incr i}} {{
   gets $fp line
   $sel frame $i
@@ -29,6 +37,8 @@ for {{set i 0}} {{$i < $nf}} {{incr i}} {{
 
 close $fp
 $sel delete
+
+# For convenience, set up representations as well
 
 mol delrep 0 top
 
@@ -48,14 +58,57 @@ mol colupdate 1 top 1
 """
 
 
+def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind,
+             chunksize=1000000):
+    """Add "loading" to each relevant atom
+
+    :param assn: (M,4) array 'assignments' file
+        The columns are: frame, solvent, solute, shell (indices)
+
+    :param loading2d: Values to apply to relevant features
+
+    :param n_frames: Number of frames. Needed to initialize the array
+    :param n_atoms: Number of atoms. Needed to initialize the array
+
+    :param solvent_ind: Indices of solvent atoms among all the atoms
+        instead of whatever indexing is used in `assn`
+
+    :param chunksize: How many rows to read at once.
+
+
+    :returns user: (n_frames, n_atoms) array of values. Write this
+        to a file that can be loaded into VMD.
+
+    """
+
+    # Initialize
+    user = np.zeros((n_frames, n_atoms))
+
+    # Deal with chunks of the pytables EARRAY
+    n_chunks = assn.shape[0] // chunksize + 1
+
+    for chunk_i in range(n_chunks):
+        chunk = assn.read(chunksize * chunk_i, chunksize * (chunk_i + 1))
+        log.debug("Chunk %d: %s", chunk_i, str(chunk.shape))
+
+        _compute_chunk(chunk, solvent_ind, loading2d, user)
+        del chunk
+
+    return user
+
+
 class VMDWriter(object):
     """Write VMD scripts to load tICA loadings into 'user' field.
 
-    :param assn: Assignment array
-    :param solvent_ind: Solvent indices
-    :param n_frames: Number of frames. TODO: Why do we need this?
-    :param n_atoms: Number of *all* atoms. VMD needs a value for each atom
-    :param n_solute: Number of solute atoms
+    :param assn: (M,4) array 'assignments' file
+        The columns are: frame, solvent, solute, shell (indices)
+    :param n_frames: Number of frames. Needed to initialize the array
+    :param n_atoms: Number of all atoms. Needed to initialize the array
+
+    :param solvent_ind: Indices of solvent atoms among all the atoms
+        instead of whatever indexing is used in `assn`
+
+    :param n_solute: Number of solute atoms for translating from 2d to 3d
     :param n_shells: Number of solvent shells. This is needed so we can
         back out the correct shape of the fingerprint vector
     """
@@ -73,35 +126,29 @@ class VMDWriter(object):
         self.n_shells = n_shells
         self.n_atoms = n_atoms
 
-    def compute(self, data, features_to_select, stride=1):
-        """Compute loadings on each solvent atom for each frame
 
-        :param data: 1d array of feature loadings
-        :param features_to_select: Which features to consider
-        :param stride: Do every n-th frame
+    def compute(self, loading, deleted):
+        """Assign loadings to atoms based on an assignments file.
+
+        :param loading: 1-d loadings (from tICA/PCA) which we apply
+            to relevant atoms
+
+        :param deleted: Indices (in 1d) of features that were removed
+            (likely due to low-variance) before performing tICA
         """
-        assn = self.assn
 
-        for fr in range(0, self.n_frames, stride):
-            assn1 = assn[np.where(assn[:, 0] == fr)[0], ...]
-            towrite = np.zeros(self.n_atoms)
+        user = _compute(self.assn, self.translate_loading(loading, deleted),
+                        self.n_frames, self.n_atoms,
+                        self.solvent_ind)
 
-            # Loop over features
-            for feati in features_to_select:
-                featu, feats = self.to3d[feati]
-                logi = np.logical_and(assn1[:, 2] == featu,
-                                      assn1[:, 3] == feats)
-                rows = np.where(logi)[0]
+        return user
 
-                highlight = self.solvent_ind[assn1[rows, 1]]
-                towrite[highlight[...]] += data[feati]
-
-            yield towrite
-
-    def translate(self, deleted):
+    def set_up_translation(self, deleted):
         """Turn indices from one form to another ('2d' -- '3d')
 
         :param deleted: Indices of states that were pruned
+
+        :returns to3d, to2d: Dictionaries
         """
         to3d = {}
         to2d = {}
@@ -122,8 +169,36 @@ class VMDWriter(object):
         self.to2d = to2d
         return to3d, to2d
 
+    def translate_loading(self, loading, deleted):
+        """Take 1-dim `loading` from tICA/PCA and expand to (solute, shell)
+        indexing.
+
+        :param loading: 1-d loadings (from tICA/PCA) which we apply
+            to relevant atoms
+
+        :param deleted: Indices (in 1d) of features that were removed
+            (likely due to low-variance) before performing tICA
+        """
+        loading2d = np.zeros((self.n_solute, self.n_shells))
+
+        absi = 0
+        pruni = 0
+        for ute in range(self.n_solute):
+            for sh in range(self.n_shells):
+                if not np.in1d(absi, deleted):
+                    loading2d[ute, sh] = loading[pruni]
+                    pruni += 1
+                else:
+                    loading2d[ute, sh] = 0.0
+
+                absi += 1
+
+        return loading2d
+
     def write_dat(self, data, features_to_select, out_fn_base, traj_fn=None,
                   top_fn=None, stride=1):
+
+        # TODO: Get rid of this
 
         dat_out_fn = "{}.dat".format(out_fn_base)
         tcl_out_fn = "{}.tcl".format(out_fn_base)
