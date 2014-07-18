@@ -48,9 +48,18 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
         self.n_solute = len(self.solute_indices)
         self.n_features = self.n_solute * self.n_shells
 
-        self.shell_counts = None
+    def featurize(self, traj, frame_offset):
+        """Featurize a trajectory using the solvent shells metric.
 
-    def featurize(self, traj):
+        Returns
+        -------
+        shellcounts : np.ndarray, shape=(n_frames, n_solute, n_shells)
+            Number of solvent atoms in shell_i around solute_i at frame_i
+        assignments : np.ndarray, shape=(x, 4)
+            Each row corresponds to an assignment of a solvent atom to a shell
+            belonging to a solute atom at a certain frame:
+            (frame_i, solvent_i, solute_i, shell_i)
+        """
 
         # Set up parameters
         n_shell = self.n_shells
@@ -62,6 +71,7 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
         atom_pairs = np.zeros((len(self.solvent_indices), 2))
         shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell),
                                dtype=int)
+        assignments_list = []
 
         for i, solute_i in enumerate(self.solute_indices):
             # For each solute atom, calculate distance to all solvent
@@ -82,17 +92,16 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
 
                 # Build assignments chunk
                 frame_solv = np.asarray(np.where(shell_bool)).T
+                frame_solv[:, 0] += frame_offset
                 solu_shell = np.zeros((len(frame_solv), 2), dtype=int)
 
                 # TODO: Why not store solute_i here?
+                # Maybe to match up with "counts"
                 solu_shell[:, 0] = i
                 solu_shell[:, 1] = j
-                assignments_chunk = np.hstack((frame_solv, solu_shell))
+                assignments_list += [np.hstack((frame_solv, solu_shell))]
 
-                yield assignments_chunk
-
-        # Put this in an attribute
-        self.shell_counts = shellcounts
+        return shellcounts, np.vstack(assignments_list)
 
 
 class SolventShellsComputation(mcmd.Parsable):
@@ -113,9 +122,8 @@ class SolventShellsComputation(mcmd.Parsable):
                  shell_width=0.2, traj_fn="", traj_top="",
                  counts_out_fn='shell_count.h5',
                  assign_out_fn='shell_assign.h5'):
-        self.solute_indices = None
+        # Initialize attributes
         self.solute_indices_fn = solute_indices_fn
-        self.solvent_indices = None
         self.solvent_indices_fn = solvent_indices_fn
         self.n_shells = n_shells
         self.shell_width = shell_width
@@ -126,19 +134,14 @@ class SolventShellsComputation(mcmd.Parsable):
         self.feat_counts = None
         self.counts_out_fn = counts_out_fn
         self.assign_out_fn = assign_out_fn
-        self.trajs = None
 
-
-    def load(self):
-        """Load relevant data and create a featurizer object.
-        """
+        # Load indices
         self.solvent_indices = np.loadtxt(self.solvent_indices_fn, dtype=int,
                                           ndmin=2)
         self.solute_indices = np.loadtxt(self.solute_indices_fn, dtype=int,
                                          ndmin=2)
 
-        self.trajs = [md.load(self.traj_fn, top=self.traj_top)]
-
+        # Create featurizer
         self.featurizer = SolventShellsAssignmentFeaturizer(
             self.solute_indices,
             self.solvent_indices,
@@ -146,12 +149,22 @@ class SolventShellsComputation(mcmd.Parsable):
             self.shell_width,
             periodic=True)
 
+    def __str__(self):
+        return "Shells: {traj_fn} with {n_shells} shells of width {shell_width} using {solute_indices_fn} and {solvent_indices_fn}".format(
+            **self.__dict__
+        )
+
+    @property
+    def n_solutes(self):
+        return len(self.solute_indices)
+
 
     def featurize_all(self):
         """Featurize."""
-        # Note: Later will add support for multiple trajectories
 
         # TODO: Add option to not overwrite / Don't do computation if these exist
+
+        # TODO: Add shell width, number information to h5 file
 
         # Use compression
         filters = tables.Filters(complevel=5, complib='zlib')
@@ -162,26 +175,30 @@ class SolventShellsComputation(mcmd.Parsable):
                                        atom=tables.UIntAtom(), shape=(0, 4),
                                        filters=filters)
 
-        # Save in chunks
-        for assn_chunk in self.featurizer.featurize(self.trajs[0]):
-            assn_ea.append(assn_chunk)
-
-        # Close that file
-        assn_h.close()
-
-        # Save shell counts
+        # Set up counts hdf5 file
         counts_h = tables.open_file(self.counts_out_fn, 'w')
-        counts_shape = self.featurizer.shell_counts.shape
-        counts_ca = counts_h.create_carray(counts_h.root, 'shell_counts',
+        counts_ea = counts_h.create_earray(counts_h.root, 'shell_counts',
                                            atom=tables.UIntAtom(),
-                                           shape=counts_shape, filters=filters)
-        counts_ca[...] = self.featurizer.shell_counts
-        counts_h.close()
+                                           shape=(
+                                               0, self.n_solutes,
+                                               self.n_shells),
+                                           filters=filters)
 
+        # Save in chunks
+        chunksize = 5000
+        for i, chunk in enumerate(
+                md.iterload(self.traj_fn, top=self.traj_top, chunk=chunksize)):
+            count_chunk, assn_chunk = self.featurizer.featurize(chunk,
+                                                                i * chunksize)
+            assn_ea.append(assn_chunk)
+            counts_ea.append(count_chunk)
+
+        # Close files
+        assn_h.close()
+        counts_h.close()
 
     def main(self):
         """Main entry point for this script."""
-        self.load()
         self.featurize_all()
 
 
