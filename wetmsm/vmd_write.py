@@ -12,7 +12,7 @@ import numpy as np
 import mcmd
 import tables
 
-from ._vmd_write import _compute_chunk
+from ._vmd_write import _compute_chunk_add, _compute_chunk_max
 
 
 log = logging.getLogger()
@@ -58,8 +58,8 @@ mol colupdate 1 top 1
 """
 
 
-def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind,
-             chunksize=1000000):
+def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind, chunksize=1000000,
+             domax=False):
     """Add "loading" to each relevant atom
 
     :param assn: (M,4) array 'assignments' file
@@ -73,6 +73,8 @@ def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind,
     :param solvent_ind: Indices of solvent atoms among all the atoms
         instead of whatever indexing is used in `assn`
 
+    :param domax: Whether to take the max value instead of adding
+
     :param chunksize: How many rows to read at once.
 
 
@@ -83,6 +85,10 @@ def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind,
 
     # Initialize
     user = np.zeros((n_frames, n_atoms))
+    if domax:
+        _compute_chunk = _compute_chunk_max
+    else:
+        _compute_chunk = _compute_chunk_add
 
     # Deal with chunks of the pytables EARRAY
     n_chunks = assn.shape[0] // chunksize + 1
@@ -125,6 +131,7 @@ class VMDWriter(object):
         self.n_solute = n_solute
         self.n_shells = n_shells
         self.n_atoms = n_atoms
+        self.do_max = False
 
 
     def compute(self, loading, deleted):
@@ -138,8 +145,8 @@ class VMDWriter(object):
         """
 
         user = _compute(self.assn, self.translate_loading(loading, deleted),
-                        self.n_frames, self.n_atoms,
-                        self.solvent_ind)
+                        self.n_frames, self.n_atoms, self.solvent_ind,
+                        domax=self.do_max)
 
         return user
 
@@ -218,8 +225,7 @@ class VMDWriter(object):
 
         if traj_fn is not None and top_fn is not None:
             with open(tcl_out_fn, 'w') as tcl_f:
-                tcl_f.write(VMDSCRIPT.format(top_fn=top_fn,
-                                             traj_fn=traj_fn,
+                tcl_f.write(VMDSCRIPT.format(top_fn=top_fn, traj_fn=traj_fn,
                                              step=stride,
                                              dat_fn=os.path.basename(
                                                  dat_out_fn)))
