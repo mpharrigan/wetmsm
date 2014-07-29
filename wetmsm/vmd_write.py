@@ -12,7 +12,8 @@ import numpy as np
 import mcmd
 import tables
 
-from ._vmd_write import _compute_chunk_add, _compute_chunk_max
+from ._vmd_write import _compute_chunk_add, _compute_chunk_max, \
+    _compute_chunk_avg
 
 
 log = logging.getLogger()
@@ -59,7 +60,7 @@ mol colupdate 1 top 1
 
 
 def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind, chunksize=1000000,
-             domax=False):
+             which='add'):
     """Add "loading" to each relevant atom
 
     :param assn: (M,4) array 'assignments' file
@@ -73,7 +74,7 @@ def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind, chunksize=1000000,
     :param solvent_ind: Indices of solvent atoms among all the atoms
         instead of whatever indexing is used in `assn`
 
-    :param domax: Whether to take the max value instead of adding
+    :param which: {add, max, avg}
 
     :param chunksize: How many rows to read at once.
 
@@ -85,10 +86,10 @@ def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind, chunksize=1000000,
 
     # Initialize
     user = np.zeros((n_frames, n_atoms))
-    if domax:
-        _compute_chunk = _compute_chunk_max
-    else:
-        _compute_chunk = _compute_chunk_add
+
+    func_map = {'add': _compute_chunk_add, 'max': _compute_chunk_max,
+                'avg': _compute_chunk_avg}
+    compute_chunk = func_map[which]
 
     # Deal with chunks of the pytables EARRAY
     n_chunks = assn.shape[0] // chunksize + 1
@@ -97,7 +98,7 @@ def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind, chunksize=1000000,
         chunk = assn.read(chunksize * chunk_i, chunksize * (chunk_i + 1))
         log.debug("Chunk %d: %s", chunk_i, str(chunk.shape))
 
-        _compute_chunk(chunk, solvent_ind, loading2d, user)
+        compute_chunk(chunk, solvent_ind, loading2d, user)
         del chunk
 
     return user
@@ -131,7 +132,7 @@ class VMDWriter(object):
         self.n_solute = n_solute
         self.n_shells = n_shells
         self.n_atoms = n_atoms
-        self.do_max = False
+        self.which = 'add'
 
 
     def compute(self, loading, deleted):
@@ -146,7 +147,7 @@ class VMDWriter(object):
 
         user = _compute(self.assn, self.translate_loading(loading, deleted),
                         self.n_frames, self.n_atoms, self.solvent_ind,
-                        domax=self.do_max)
+                        which=self.which)
 
         return user
 
