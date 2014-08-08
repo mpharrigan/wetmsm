@@ -156,7 +156,7 @@ class VMDWriter(object):
 
         return user
 
-    def set_up_translation(self, deleted):
+    def make_translation_dicts(self, deleted):
         """Turn indices from one form to another ('2d' -- '3d')
 
         :param deleted: Indices of states that were pruned
@@ -207,34 +207,6 @@ class VMDWriter(object):
                 absi += 1
 
         return loading2d
-
-    def write_dat(self, data, features_to_select, out_fn_base, traj_fn=None,
-                  top_fn=None, stride=1):
-
-        # TODO: Get rid of this
-
-        dat_out_fn = "{}.dat".format(out_fn_base)
-        tcl_out_fn = "{}.tcl".format(out_fn_base)
-
-        howmany = self.n_frames // stride
-
-        with open(dat_out_fn, 'w') as dat_f:
-            for i, row in enumerate(
-                    self.compute(data, features_to_select, stride)):
-                [dat_f.write('{} '.format(d)) for d in row]
-                dat_f.write('\n')
-
-                if i % 10 == 0:
-                    log.info("Done %d / %d", i, howmany)
-                else:
-                    log.debug("Done %d / %d", i, howmany)
-
-        if traj_fn is not None and top_fn is not None:
-            with open(tcl_out_fn, 'w') as tcl_f:
-                tcl_f.write(VMDSCRIPT.format(top_fn=top_fn, traj_fn=traj_fn,
-                                             step=stride,
-                                             dat_fn=os.path.basename(
-                                                 dat_out_fn)))
 
 
 class VMDWriterCommand(mcmd.Parsable):
