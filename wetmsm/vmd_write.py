@@ -12,6 +12,8 @@ import numpy as np
 import mcmd
 import tables
 
+from math import ceil
+
 from ._vmd_write import _compute_chunk_add, _compute_chunk_max, \
     _compute_chunk_avg
 
@@ -60,7 +62,7 @@ mol colupdate 1 top 1
 
 
 def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind, chunksize=1000000,
-             which='add'):
+             which='add', stride=1):
     """Add "loading" to each relevant atom
 
     :param assn: (M,4) array 'assignments' file
@@ -77,6 +79,7 @@ def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind, chunksize=1000000,
     :param which: {add, max, avg}
 
     :param chunksize: How many rows to read at once.
+    :param stride: Stride output array (to avoid MemoryError)
 
 
     :returns user: (n_frames, n_atoms) array of values. Write this
@@ -85,7 +88,7 @@ def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind, chunksize=1000000,
     """
 
     # Initialize
-    user = np.zeros((n_frames, n_atoms))
+    user = np.zeros((ceil(n_frames / stride), n_atoms))
 
     func_map = {'add': _compute_chunk_add, 'max': _compute_chunk_max,
                 'avg': _compute_chunk_avg}
@@ -98,7 +101,7 @@ def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind, chunksize=1000000,
         chunk = assn.read(chunksize * chunk_i, chunksize * (chunk_i + 1))
         log.debug("Chunk %d: %s", chunk_i, str(chunk.shape))
 
-        compute_chunk(chunk, solvent_ind, loading2d, user)
+        compute_chunk(chunk, solvent_ind, loading2d, user, stride)
         del chunk
 
     return user
@@ -135,7 +138,7 @@ class VMDWriter(object):
         self.which = 'add'
 
 
-    def compute(self, loading, deleted):
+    def compute(self, loading, deleted, stride=1):
         """Assign loadings to atoms based on an assignments file.
 
         :param loading: 1-d loadings (from tICA/PCA) which we apply
@@ -143,11 +146,13 @@ class VMDWriter(object):
 
         :param deleted: Indices (in 1d) of features that were removed
             (likely due to low-variance) before performing tICA
+
+        :param stride: Stride output for memory reasons
         """
 
         user = _compute(self.assn, self.translate_loading(loading, deleted),
                         self.n_frames, self.n_atoms, self.solvent_ind,
-                        which=self.which)
+                        which=self.which, stride=stride)
 
         return user
 

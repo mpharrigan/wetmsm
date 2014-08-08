@@ -5,17 +5,24 @@ cimport cython
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def  _compute_chunk_add(
         unsigned int[:, :] assn,
         long[:] solvent_ind,
         double[:, :] loading2d,
-        double[:, :] user):
+        double[:, :] user,
+        int stride):
     """Add "loading" to each relevant atom
     """
     cdef int fr, vent, ute, shell
 
     for i in range(assn.shape[0]):
         fr = assn[i, 0]
+        if fr % stride == 0:
+            fr /= stride
+        else:
+            continue
+
         vent = solvent_ind[assn[i, 1]]
         ute = assn[i, 2]
         shell = assn[i, 3]
@@ -29,9 +36,14 @@ def  _compute_chunk_max(
         unsigned int[:, :] assn,
         long[:] solvent_ind,
         double[:, :] loading2d,
-        double[:, :] user):
+        double[:, :] user,
+        int stride):
     """Compute max "loading" for each relevant atom
     """
+
+    if stride > 1:
+        raise NotImplementedError()
+
     cdef int fr, vent, ute, shell
 
     for i in range(assn.shape[0]):
@@ -50,11 +62,15 @@ def  _compute_chunk_avg(
         unsigned int[:, :] assn,
         long[:] solvent_ind,
         double[:, :] loading2d,
-        double[:, :] user):
+        double[:, :] user,
+        int stride):
     """Add "loading" and average by number of shells it's in.
     """
     cdef int fr, vent, ute, shell
     cdef double[:, :] counts = np.zeros_like(user)
+
+    if stride > 1:
+        raise NotImplementedError()
 
     for i in range(assn.shape[0]):
         fr = assn[i, 0]
