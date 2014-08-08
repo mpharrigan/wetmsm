@@ -113,14 +113,17 @@ class VMDWriter(object):
 
         # Averaging requires keeping track of occupancies
         if which == 'avg':
-            occupancy = np.zeros_like(user, dtype=int)
+            occupancy = np.zeros_like(user)
 
-            def _compute_chunk_avg_wrapped(a, b, c, d, e, f):
-                return _compute_chunk_avg(a, b, c, d, e, f, occupancy)
+            def _compute_chunk_avg_wrapped(a, b, c, d, e):
+                return _compute_chunk_avg(a, b, c, d, e, occupancy)
+        else:
+            def _compute_chunk_avg_wrapped(a, b, c, d, e):
+                return None
 
         func_map = {'add': _compute_chunk_add, 'max': _compute_chunk_max,
                     'avg': _compute_chunk_avg_wrapped}
-        compute_chunk = func_map[self.which]
+        compute_chunk = func_map[which]
 
         # Deal with chunks of the pytables EARRAY
         n_chunks = self.assn.shape[0] // chunksize + 1
