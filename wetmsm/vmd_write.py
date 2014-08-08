@@ -5,14 +5,13 @@ This involves writing a data file and a TCL script to get VMD
 to load in the data file.
 """
 
-import os
 import logging
+from math import ceil
 
+from matplotlib import pyplot as plt
 import numpy as np
 import mcmd
 import tables
-
-from math import ceil
 
 from ._vmd_write import _compute_chunk_add, _compute_chunk_max, \
     _compute_chunk_avg
@@ -186,6 +185,51 @@ class VMDWriter(object):
                 absi += 1
 
         return loading2d
+
+    def loading_plotter(self, tic, deleted, cutoff=0.0, title='Loading'):
+        """Calculate and plot loadings for a tic."""
+        # X range
+        xx = np.arange(len(tic))
+        xlim1 = (0, len(tic))
+        plt.subplots(2, 2, figsize=(10, 6))
+
+        plt.subplot(2, 2, 1)
+        plt.title('{} Components'.format(title))
+        plt.scatter(xx, tic, linewidth=0, s=30, edgecolor='none')
+        plt.xlabel('Feature')
+        plt.xlim(xlim1)
+
+        plt.subplot(2, 2, 2)
+        plt.title('tIC 2 Component Intensities')
+        tic_sq = tic ** 2
+        tic_sq /= np.max(tic_sq)
+        plt.scatter(xx, tic_sq, linewidth=0, s=30, c='r', edgecolor='none')
+        plt.xlabel('Feature')
+        plt.xlim(xlim1)
+
+        plt.subplot(2, 2, 3)
+        plt.title('tIC 2 Clipped Intensities')
+        loading1d = np.copy(tic_sq)
+        loading1d[tic_sq < cutoff] = 0.0
+        plt.scatter(xx, loading1d, linewidth=0, s=30, c='purple',
+                    edgecolor='none')
+        plt.xlabel('Feature')
+        plt.xlim(xlim1)
+
+        plt.subplot(2, 2, 4)
+        plt.title('Loadings by shell')
+        loading2d = self.translate_loading(loading1d, deleted)
+        xlim2 = (0, loading2d.shape[0])
+        utebins, shbins = np.meshgrid(np.arange(loading2d.shape[0]),
+                                      np.arange(loading2d.shape[1]))
+        plt.scatter(utebins, shbins, edgecolor='none',
+                    s=300 * loading2d, c=-loading2d, cmap=plt.get_cmap('RdBu'))
+        plt.ylabel('Shell')
+        plt.xlabel('Residue')
+        plt.xlim(xlim2)
+
+        plt.tight_layout()
+        return loading1d, loading2d
 
 
 class VMDWriterCommand(mcmd.Parsable):
