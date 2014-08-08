@@ -61,52 +61,6 @@ mol colupdate 1 top 1
 """
 
 
-def _compute(assn, loading2d, n_frames, n_atoms, solvent_ind, chunksize=1000000,
-             which='add', stride=1):
-    """Add "loading" to each relevant atom
-
-    :param assn: (M,4) array 'assignments' file
-        The columns are: frame, solvent, solute, shell (indices)
-
-    :param loading2d: Values to apply to relevant features
-
-    :param n_frames: Number of frames. Needed to initialize the array
-    :param n_atoms: Number of atoms. Needed to initialize the array
-
-    :param solvent_ind: Indices of solvent atoms among all the atoms
-        instead of whatever indexing is used in `assn`
-
-    :param which: {add, max, avg}
-
-    :param chunksize: How many rows to read at once.
-    :param stride: Stride output array (to avoid MemoryError)
-
-
-    :returns user: (n_frames, n_atoms) array of values. Write this
-        to a file that can be loaded into VMD.
-
-    """
-
-    # Initialize
-    user = np.zeros((ceil(n_frames / stride), n_atoms))
-
-    func_map = {'add': _compute_chunk_add, 'max': _compute_chunk_max,
-                'avg': _compute_chunk_avg}
-    compute_chunk = func_map[which]
-
-    # Deal with chunks of the pytables EARRAY
-    n_chunks = assn.shape[0] // chunksize + 1
-
-    for chunk_i in range(n_chunks):
-        chunk = assn.read(chunksize * chunk_i, chunksize * (chunk_i + 1))
-        log.debug("Chunk %d: %s", chunk_i, str(chunk.shape))
-
-        compute_chunk(chunk, solvent_ind, loading2d, user, stride)
-        del chunk
-
-    return user
-
-
 class VMDWriter(object):
     """Write VMD scripts to load tICA loadings into 'user' field.
 
@@ -128,31 +82,55 @@ class VMDWriter(object):
         self.assn = assn
         self.solvent_ind = solvent_ind
 
-        self.to3d = None
-        self.to2d = None
-
         self.n_frames = n_frames
         self.n_solute = n_solute
         self.n_shells = n_shells
         self.n_atoms = n_atoms
-        self.which = 'add'
 
 
-    def compute(self, loading, deleted, stride=1):
+    def compute(self, loading2d, stride=1, which='add', chunksize=1000000):
         """Assign loadings to atoms based on an assignments file.
 
-        :param loading: 1-d loadings (from tICA/PCA) which we apply
-            to relevant atoms
+        :param loading2d: 2-d loadings (from tICA/PCA) which we apply
+            to relevant atoms. Use `translate_loadings` first probably
 
         :param deleted: Indices (in 1d) of features that were removed
             (likely due to low-variance) before performing tICA
 
-        :param stride: Stride output for memory reasons
+        :param stride: Stride output for memory reasons. All rows of the
+            assignment file will still be considered
+
+        :param which: ['add', 'max', 'avg'] How to compute loadings
+            - add: Sum contributions from multiple shells
+            - max: Take maximum shell contribution for each solvent atom
+            - avg: WIP
+
+        :param chunksize: How many roads of assignments to read at a time
         """
 
-        user = _compute(self.assn, self.translate_loading(loading, deleted),
-                        self.n_frames, self.n_atoms, self.solvent_ind,
-                        which=self.which, stride=stride)
+        # Initialize output arrays
+        user = np.zeros((ceil(self.n_frames / stride), self.n_atoms))
+
+        # Averaging requires keeping track of occupancies
+        if which == 'avg':
+            occupancy = np.zeros_like(user, dtype=int)
+
+            def _compute_chunk_avg_wrapped(a, b, c, d, e, f):
+                return _compute_chunk_avg(a, b, c, d, e, f, occupancy)
+
+        func_map = {'add': _compute_chunk_add, 'max': _compute_chunk_max,
+                    'avg': _compute_chunk_avg_wrapped}
+        compute_chunk = func_map[self.which]
+
+        # Deal with chunks of the pytables EARRAY
+        n_chunks = self.assn.shape[0] // chunksize + 1
+
+        for chunk_i in range(n_chunks):
+            chunk = self.assn.read(chunksize * chunk_i,
+                                   chunksize * (chunk_i + 1))
+            log.debug("Chunk %d: %s", chunk_i, str(chunk.shape))
+            compute_chunk(chunk, self.solvent_ind, loading2d, user, stride)
+            del chunk
 
         return user
 
@@ -178,8 +156,6 @@ class VMDWriter(object):
                     to2d[(ute, sh)] = -1
                 absi += 1
 
-        self.to3d = to3d
-        self.to2d = to2d
         return to3d, to2d
 
     def translate_loading(self, loading, deleted):
