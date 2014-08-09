@@ -117,9 +117,10 @@ class VMDWriter(object):
             def _compute_chunk_avg_wrapped(a, b, c, d, e):
                 return _compute_chunk_avg(a, b, c, d, e, occupancy)
         else:
-            def _compute_chunk_avg_wrapped(a, b, c, d, e):
+            def _compute_chunk_avg_wrapped():
                 return None
 
+        # Select the correct function
         func_map = {'add': _compute_chunk_add, 'max': _compute_chunk_max,
                     'avg': _compute_chunk_avg_wrapped}
         compute_chunk = func_map[which]
@@ -133,6 +134,12 @@ class VMDWriter(object):
             log.debug("Chunk %d: %s", chunk_i, str(chunk.shape))
             compute_chunk(chunk, self.solvent_ind, loading2d, user, stride)
             del chunk
+
+        if which == 'avg':
+            inds = occupancy > 0
+            ret = np.zeros_like(user)
+            ret[inds] = user[inds] / occupancy[inds]
+            return ret
 
         return user
 

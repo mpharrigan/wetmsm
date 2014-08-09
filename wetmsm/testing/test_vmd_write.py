@@ -82,15 +82,31 @@ class TestVmdWrite(TestCase):
     def test_avg(self):
         loading2d = np.array([
             [2.0, 4.0, 99],
-            [6.0, 8.0, 99]
+            [6.0, 9.0, 99]
+        ])
+        user = self.vmd.compute(loading2d, which='avg', chunksize=1)
+        sb = np.zeros((3, 5))
+
+        sb[:, 2:4] = np.array([
+            [2, 6],
+            [6.5, 6.5],
+            [6, 2.0]
+        ])
+
+        assert_array_equal(user, sb)
+
+    def test_avg2(self):
+        loading2d = np.array([
+            [1.0, 0, 0],
+            [1.0, 0, 0]
         ])
         user = self.vmd.compute(loading2d, which='avg')
         sb = np.zeros((3, 5))
 
         sb[:, 2:4] = np.array([
-            [2, 6],
-            [6, 6],
-            [6, 2.0]
+            [1, 1],
+            [0, 0],
+            [1, 1.0]
         ])
 
         assert_array_equal(user, sb)

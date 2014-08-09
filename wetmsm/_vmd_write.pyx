@@ -89,13 +89,3 @@ def  _compute_chunk_avg(
     """
     _compute_chunk(assn, solvent_ind, loading2d, user, stride, add_helper)
     _compute_chunk(assn, solvent_ind, loading2d, occ,  stride, avg_counter)
-
-    cdef int i, j
-    cdef double uu
-    for i in range(user.shape[0]):
-        for j in range(user.shape[1]):
-            uu = user[i, j]
-            if uu > 1e-5:
-                user[i, j] /= occ[i, j]
-
-
