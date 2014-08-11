@@ -207,7 +207,7 @@ class VMDWriter(object):
         plt.xlim(xlim1)
 
         plt.subplot(2, 2, 2)
-        plt.title('tIC 2 Component Intensities')
+        plt.title('{} Component Intensities'.format(title))
         tic_sq = tic ** 2
         tic_sq /= np.max(tic_sq)
         plt.scatter(xx, tic_sq, linewidth=0, s=30, c='r', edgecolor='none')
@@ -215,7 +215,7 @@ class VMDWriter(object):
         plt.xlim(xlim1)
 
         plt.subplot(2, 2, 3)
-        plt.title('tIC 2 Clipped Intensities')
+        plt.title('{} Clipped Intensities'.format(title))
         loading1d = np.copy(tic_sq)
         loading1d[tic_sq < cutoff] = 0.0
         plt.scatter(xx, loading1d, linewidth=0, s=30, c='purple',
