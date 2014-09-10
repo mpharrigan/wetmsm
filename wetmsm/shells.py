@@ -164,8 +164,6 @@ class SolventShellsComputation(mcmd.Parsable):
 
         # TODO: Add option to not overwrite / Don't do computation if these exist
 
-        # TODO: Add shell width, number information to h5 file
-
         # Use compression
         filters = tables.Filters(complevel=5, complib='zlib')
 
@@ -174,6 +172,14 @@ class SolventShellsComputation(mcmd.Parsable):
         assn_ea = assn_h.create_earray(assn_h.root, 'assignments',
                                        atom=tables.UIntAtom(), shape=(0, 4),
                                        filters=filters)
+        sw_node1 = assn_h.create_carray(assn_h.root, "shell_width",
+                                        atom=tables.FloatAtom(),
+                                        shape=(1,), filters=filters)
+        sw_node1[:] = self.shell_width
+        ns_node = assn_h.create_carray(assn_h.root, "n_shells",
+                                       atom=tables.IntAtom(),
+                                       shape=(1,), filters=filters)
+        ns_node[:] = self.n_shells
 
         # Set up counts hdf5 file
         counts_h = tables.open_file(self.counts_out_fn, 'w')
@@ -183,6 +189,10 @@ class SolventShellsComputation(mcmd.Parsable):
                                                0, self.n_solutes,
                                                self.n_shells),
                                            filters=filters)
+        sw_node2 = counts_h.create_carray(counts_h.root, "shell_width",
+                                          atom=tables.FloatAtom(),
+                                          shape=(1,), filters=filters)
+        sw_node2[:] = self.shell_width
 
         # Save in chunks
         chunksize = 5000

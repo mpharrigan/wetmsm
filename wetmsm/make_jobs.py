@@ -141,7 +141,6 @@ class MakeShellsJobsCommand(MakeJobsCommand):
             sub_f.write('\n'.join(submit_lines))
 
 
-
 def parse():
     """Parse command line arguments."""
     p = mcmd.parsify(MakeJobsCommand)
