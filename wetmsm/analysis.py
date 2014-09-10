@@ -5,7 +5,7 @@ import logging
 from mixtape.tica import tICA
 from mixtape.pca import PCA
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 EPS = 1e-7
 

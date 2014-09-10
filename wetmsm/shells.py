@@ -48,7 +48,7 @@ class SolventShellsAssignmentFeaturizer(Featurizer):
         self.n_solute = len(self.solute_indices)
         self.n_features = self.n_solute * self.n_shells
 
-    def featurize(self, traj, frame_offset):
+    def featurize(self, traj, frame_offset=0):
         """Featurize a trajectory using the solvent shells metric.
 
         Returns
@@ -136,18 +136,14 @@ class SolventShellsComputation(mcmd.Parsable):
         self.assign_out_fn = assign_out_fn
 
         # Load indices
-        self.solvent_indices = np.loadtxt(self.solvent_indices_fn, dtype=int,
-                                          ndmin=2)
-        self.solute_indices = np.loadtxt(self.solute_indices_fn, dtype=int,
-                                         ndmin=2)
+        if solvent_indices_fn is not None:
+            self.solvent_indices = np.loadtxt(self.solvent_indices_fn,
+                                              dtype=int, ndmin=2)
+        if solute_indices_fn is not None:
+            self.solute_indices = np.loadtxt(self.solute_indices_fn, dtype=int,
+                                             ndmin=2)
 
-        # Create featurizer
-        self.featurizer = SolventShellsAssignmentFeaturizer(
-            self.solute_indices,
-            self.solvent_indices,
-            self.n_shells,
-            self.shell_width,
-            periodic=True)
+        self.featurizer = None
 
     def __str__(self):
         return "Shells: {traj_fn} with {n_shells} shells of width {shell_width} using {solute_indices_fn} and {solvent_indices_fn}".format(
@@ -161,6 +157,14 @@ class SolventShellsComputation(mcmd.Parsable):
 
     def featurize_all(self):
         """Featurize."""
+
+        # Create featurizer
+        self.featurizer = SolventShellsAssignmentFeaturizer(
+            self.solute_indices,
+            self.solvent_indices,
+            self.n_shells,
+            self.shell_width,
+            periodic=True)
 
         # TODO: Add option to not overwrite / Don't do computation if these exist
 
