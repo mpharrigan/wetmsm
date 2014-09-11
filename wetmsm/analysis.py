@@ -4,10 +4,53 @@ import numpy as np
 import logging
 from mixtape.tica import tICA
 from mixtape.pca import PCA
+import tables
+import pickle
 
 log = logging.getLogger(__name__)
 
 EPS = 1e-7
+
+
+def pickle_save(obj, fn):
+    with open(fn, 'wb') as f:
+        pickle.dump(obj, f)
+
+
+def stepwise_analysis(counts_fns, out_fn_prefix, lag_time):
+    # Load data from tables
+    seqs_3d_unorm = []
+    shell_w = -1
+    for counts_fn in counts_fns:
+        h = tables.open_file(counts_fn)
+        seq = h.root.shell_counts[:]
+        shell_w, = h.root.shell_width[:]
+        seqs_3d_unorm.append(seq)
+        h.close()
+    pickle_save(seqs_3d_unorm, "{}.3d.unnorm.pickl".format(out_fn_prefix))
+
+    # Normalize
+    seqs_3d_norm = [normalize(fp3d, shell_w) for fp3d in seqs_3d_unorm]
+    del seqs_3d_unorm
+    pickle_save(seqs_3d_norm, '{}.3d.norm.pickl'.format(out_fn_prefix))
+
+    # Flatten
+    seqs_2d_uprune = [reshape(fp3d) for fp3d in seqs_3d_norm]
+    del seqs_3d_norm
+    pickle_save(seqs_2d_uprune, '{}.2d.uprune.pickl'.format(out_fn_prefix))
+
+    # Prune low variance
+    seqs_2d_prune, deleted = prune_all(seqs_2d_uprune)
+    del seqs_2d_uprune
+    pickle_save(seqs_2d_prune, '{}.2d.prune.pickl'.format(out_fn_prefix))
+    pickle_save(deleted, '{}.deleted.pickl'.format(out_fn_prefix))
+
+    # Fit tICA
+    tica = tICA(n_components=10, lag_time=lag_time, weighted_transform=True)
+    ticax = tica.fit_transform(seqs_2d_prune)
+    del seqs_2d_prune
+    pickle_save(tica, '{}.tica.pickl'.format(out_fn_prefix))
+    pickle_save(ticax, '{}.ticax.pickl'.format(out_fn_prefix))
 
 
 class SolventShellsAnalysis():
