@@ -144,14 +144,7 @@ def reshape(fp3d):
     return fp2d
 
 
-def prune_all(fp2d_all):
-    """Prune a list of feature trajectories.
-
-    Only remove a feature if it is zero in *all* trajectories.
-
-    :param fp2d_all: List of (n_frames, n_features) sequences.
-    """
-
+def get_to_delete(fp2d_all):
     assert len(fp2d_all) > 0, 'We expect a list'
     n_features = fp2d_all[0].shape[1]
 
@@ -162,9 +155,20 @@ def prune_all(fp2d_all):
         zero_variance[i, :] = np.var(fp2d, axis=0) < EPS
 
     to_delete = np.where(np.all(zero_variance, axis=0))
+    return to_delete
+
+
+def prune_all(fp2d_all):
+    """Prune a list of feature trajectories.
+
+    Only remove a feature if it is zero in *all* trajectories.
+
+    :param fp2d_all: List of (n_frames, n_features) sequences.
+    """
+
+    to_delete = get_to_delete(fp2d_all)
     log.info('Trimming %d features from all trajectories', len(to_delete[0]))
-    fp2d_all_pruned = [np.delete(fp2d, to_delete, axis=1)
-                       for fp2d in fp2d_all]
+    fp2d_all_pruned = [np.delete(fp2d, to_delete, axis=1) for fp2d in fp2d_all]
     return fp2d_all_pruned, to_delete[0]
 
 
