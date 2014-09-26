@@ -1,4 +1,7 @@
-__author__ = 'harrigan'
+"""Test writing data files for visualization of solvent
+
+Author: Matthew Harrigan
+"""
 
 from unittest import TestCase
 import unittest

@@ -1,12 +1,14 @@
-"""Apply spherical shells solvent fingerprint to a set of trajectories."""
+"""Apply spherical shells solvent fingerprint to a set of trajectories.
 
-__author__ = 'harrigan'
+Author: Matthew Harrigan
+"""
 
 import mdtraj as md
 import numpy as np
 from mixtape.featurizer import Featurizer
-from . import mcmd
 import tables
+
+from . import mcmd
 
 
 class SolventShellsAssignmentFeaturizer(Featurizer):

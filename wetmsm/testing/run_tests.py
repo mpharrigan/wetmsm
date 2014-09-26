@@ -1,4 +1,7 @@
-__author__ = 'harrigan'
+"""Run all tests.
+
+Author: Matthew Harrigan
+"""
 
 import unittest
 import argparse

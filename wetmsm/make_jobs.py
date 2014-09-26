@@ -1,6 +1,7 @@
-"""Write PBS Jobs for various calculations."""
+"""Write PBS Jobs for various calculations.
 
-__author__ = 'harrigan'
+Author: Matthew Harrigan
+"""
 
 PBS_HEADER = """#!/bin/bash
 #PBS -l nodes=1:ppn=1
@@ -35,9 +36,10 @@ SUBMIT_LINE = "{jobfn}"
 
 import glob
 import os
-import stat
 import logging
+
 from . import mcmd
+
 
 log = logging.getLogger()
 log.addHandler(logging.StreamHandler())

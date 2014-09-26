@@ -1,4 +1,7 @@
-__author__ = 'harrigan'
+"""Test solvent shell featurization
+
+Author: Matthew Harrigan
+"""
 
 import unittest
 import wetmsm

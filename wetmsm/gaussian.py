@@ -1,10 +1,12 @@
-"""Apply Gaussian-kernel solvent fingerprint to a set of trajectories."""
+"""Apply Gaussian-kernel solvent fingerprint to a set of trajectories.
 
-__author__ = 'harrigan'
+Author: Matthew Harrigan
+"""
 
 import mdtraj as md
 import numpy as np
 import mixtape.featurizer
+
 from . import mcmd
 
 

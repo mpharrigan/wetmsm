@@ -1,11 +1,22 @@
-__author__ = 'harrigan'
+"""Post-featurization analysis functions
+
+The usual process is:
+    - Load h5 file
+    - Normalize 4pir^2dr
+    - Flatten 3d array to 2d timeseries
+    - Remove features that have no variance
+
+Author: Matthew Harrigan
+"""
+
+import logging
+import pickle
 
 import numpy as np
-import logging
 from mixtape.tica import tICA
 from mixtape.pca import PCA
 import tables
-import pickle
+
 
 log = logging.getLogger(__name__)
 

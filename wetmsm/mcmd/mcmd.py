@@ -1,4 +1,7 @@
-__author__ = 'harrigan'
+"""Object oriented command line parsing using argparse
+
+Author: Matthew Harrigan
+"""
 
 import argparse
 import inspect

@@ -1,4 +1,7 @@
-__author__ = 'harrigan'
+"""Test analysis functions
+
+Author: Matthew Harrigan
+"""
 
 import unittest
 import numpy as np

@@ -3,6 +3,8 @@ Using assignments, write data to the User field in vmd.
 
 This involves writing a data file and a TCL script to get VMD
 to load in the data file.
+
+Author: Matthew Harrigan
 """
 
 import logging
@@ -10,9 +12,9 @@ from math import ceil
 
 from matplotlib import pyplot as plt
 import numpy as np
-import mcmd
 import tables
 
+import mcmd
 from ._vmd_write import _compute_chunk_add, _compute_chunk_max, \
     _compute_chunk_avg
 
