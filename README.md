@@ -1,12 +1,21 @@
-wetmsm
+Wetmsm
 ======
 
-Investigate water in MD trajectories
+Investigate water in MD trajectories.
+
+Install
+-------
+
+Install using `python setup.py install`
+
+*Python 2*: This package was written and tested on Python 3. Using
+python-future's `pasteurize` script seems to work well at converting
+the code to be Py2 compatible.
+
 
 How to use
 ------------
 
- 1. Install using `python setup.py install`
 
  1. The user-facing script is `wetmsm/make_jobs.py` although I don't have
     it set to install into your path. So run `python -m wetmsm.make_jobs -h`.
