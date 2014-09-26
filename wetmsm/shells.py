@@ -5,7 +5,7 @@ __author__ = 'harrigan'
 import mdtraj as md
 import numpy as np
 from mixtape.featurizer import Featurizer
-import mcmd
+from . import mcmd
 import tables
 
 

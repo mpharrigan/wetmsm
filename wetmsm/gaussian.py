@@ -5,7 +5,7 @@ __author__ = 'harrigan'
 import mdtraj as md
 import numpy as np
 import mixtape.featurizer
-import mcmd
+from . import mcmd
 
 
 class GaussianSolventComputation(mcmd.Parsable):

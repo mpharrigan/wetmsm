@@ -37,7 +37,7 @@ import glob
 import os
 import stat
 import logging
-import mcmd
+from . import mcmd
 
 log = logging.getLogger()
 log.addHandler(logging.StreamHandler())
