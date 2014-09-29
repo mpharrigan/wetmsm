@@ -14,7 +14,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import tables
 
-import mcmd
+from . import mcmd
 from ._vmd_write import _compute_chunk_add, _compute_chunk_max, \
     _compute_chunk_avg
 
