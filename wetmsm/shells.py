@@ -150,9 +150,8 @@ class SolventShellsComputation(mcmd.Parsable):
         self.featurizer = None
 
     def __str__(self):
-        return "Shells: {traj_fn} with {n_shells} shells of width {shell_width} using {solute_indices_fn} and {solvent_indices_fn}".format(
-            **self.__dict__
-        )
+        fmt = "Shells: {traj_fn} with {n_shells} shells of width {shell_width} using {solute_indices_fn} and {solvent_indices_fn}"
+        return fmt.format(**self.__dict__)
 
     @property
     def n_solutes(self):
