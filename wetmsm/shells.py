@@ -13,6 +13,82 @@ import tables
 from . import mcmd
 
 
+class SolventShellsFeaturizer(Featurizer):
+    """Bin solvent atoms into spherical shells around solute atoms.
+
+    Parameters
+    ----------
+    solute_indices : np.ndarray, shape=(n_solute,1)
+        Indices of solute atoms
+    solvent_indices : np.ndarray, shape=(n_solvent, 1)
+        Indices of solvent atoms
+    n_shells : int
+        Number of shells to consider around each solute atom
+    shell_width : float
+        The width of each solvent atom
+    periodic : bool
+        Whether to consider a periodic system in distance calculations
+
+    Returns
+    -------
+    shellcounts : np.ndarray, shape=(n_frames, n_solute, n_shells)
+        Number of solvent atoms in shell_i around solute_i at frame_i
+
+    References
+    ----------
+    """
+
+    def __init__(self, solute_indices, solvent_indices, n_shells, shell_width,
+                 periodic=True):
+        self.solute_indices = solute_indices[:, 0]
+        self.solvent_indices = solvent_indices[:, 0]
+        self.n_shells = n_shells
+        self.shell_width = shell_width
+        self.periodic = periodic
+        self.n_solute = len(self.solute_indices)
+        self.n_features = self.n_solute * self.n_shells
+
+    def partial_transform(self, traj):
+        """Featurize a trajectory using the solvent shells metric.
+
+        Returns
+        -------
+        shellcounts : np.ndarray, shape=(n_frames, n_solute, n_shells)
+            Number of solvent atoms in shell_i around solute_i at frame_i
+        """
+
+        # Set up parameters
+        n_shell = self.n_shells
+        shell_w = self.shell_width
+        shell_edges = np.linspace(0, shell_w * (n_shell + 1),
+                                  num=(n_shell + 1), endpoint=True)
+
+        # Initialize arrays
+        atom_pairs = np.zeros((len(self.solvent_indices), 2))
+        shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell),
+                               dtype=int)
+
+        for i, solute_i in enumerate(self.solute_indices):
+            # For each solute atom, calculate distance to all solvent
+            # molecules
+            atom_pairs[:, 0] = solute_i
+            atom_pairs[:, 1] = self.solvent_indices
+
+            distances = md.compute_distances(traj, atom_pairs,
+                                             periodic=self.periodic)
+
+            for j in range(n_shell):
+                # For each shell, do boolean logic
+                shell_bool = np.logical_and(
+                    distances >= shell_edges[j],
+                    distances < shell_edges[j + 1]
+                )
+                # And count the number in this shell
+                shellcounts[:, i, j] = np.sum(shell_bool, axis=1)
+
+        return shellcounts
+
+
 class SolventShellsAssignmentFeaturizer(Featurizer):
     """Bin solvent atoms into spherical shells around solute atoms.
 
