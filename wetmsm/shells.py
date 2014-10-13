@@ -242,7 +242,7 @@ class SolventShellsComputation(mcmd.Parsable):
                                         n_shells=self.n_shells)
 
         # Set up counts file
-        counts_shape = (0, self.n_solutes , self.n_shells)
+        counts_shape = (0, self.n_solutes, self.n_shells)
         counts_h, counts_ea = _create_hfile(self.counts_out_fn, 'shell_counts',
                                             filters, shape=counts_shape,
                                             shell_width=self.shell_width,

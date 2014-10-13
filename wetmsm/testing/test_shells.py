@@ -12,6 +12,7 @@ import tempfile
 import mdtraj as md
 import tables
 from os.path import join as pjoin
+import mixtape.featurizer
 
 
 def make_traj_from_1d(*particles):
@@ -101,6 +102,41 @@ class TestShells(unittest.TestCase):
         np.testing.assert_array_equal(counts, should_be)
 
         count_f.close()
+
+
+class TestMixtape(unittest.TestCase):
+    def setUp(self):
+        traj = make_traj_from_1d(
+            [0, 0, 0, 0, 0, 5, 5, 5, 5],
+            [-1, -2, -3, -4, -5, -6, -7, -8, -9],
+            [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        )
+        self.tmpdir = tempfile.mkdtemp()
+        self.traj_fn = pjoin(self.tmpdir, 'traj.h5')
+        traj.save(self.traj_fn)
+
+        self.ssfeat = wetmsm.SolventShellsFeaturizer([0], [1, 2], 3, 1, True)
+
+
+    def test_partial_transform(self):
+        data, indices, fns = mixtape.featurizer.featurize_all([self.traj_fn],
+                                                              self.ssfeat,
+                                                              topology=None)
+
+        norm = np.asarray([4 * np.pi * r ** 2 for r in [0.5, 1.5, 2.5]])
+        should_be = np.array([
+            [2, 0, 0],
+            [0, 2, 0],
+            [0, 0, 2],
+            [0, 0, 0],
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1],
+            [0, 0, 0]
+        ]) / norm
+
+        np.testing.assert_array_equal(data, should_be)
 
 
 if __name__ == "__main__":
