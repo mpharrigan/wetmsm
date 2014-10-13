@@ -71,8 +71,8 @@ class TestShells(unittest.TestCase):
             counts_out_fn=pjoin(self.tmpdir, 'shell_count.h5'),
             assign_out_fn=pjoin(self.tmpdir, 'shell_assign.h5')
         )
-        shell_computation.solute_indices = np.array([[0]]).T
-        shell_computation.solvent_indices = np.array([[1, 2]]).T
+        shell_computation.solute_indices = np.array([0])
+        shell_computation.solvent_indices = np.array([1, 2])
         self.shell_comp = shell_computation
 
     def test_string_repr(self):

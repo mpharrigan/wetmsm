@@ -145,8 +145,6 @@ class SolventShellsFeaturizer(Featurizer):
                 solu_shell[:, 1] = j
                 assignments_list += [np.hstack((frame_solv, solu_shell))]
 
-        shellcounts = analysis.normalize(shellcounts, shell_w)
-        shellcounts = analysis.reshape(shellcounts)
         return shellcounts, np.vstack(assignments_list)
 
 
@@ -244,7 +242,7 @@ class SolventShellsComputation(mcmd.Parsable):
                                         n_shells=self.n_shells)
 
         # Set up counts file
-        counts_shape = (0, self.n_solutes * self.n_shells)
+        counts_shape = (0, self.n_solutes , self.n_shells)
         counts_h, counts_ea = _create_hfile(self.counts_out_fn, 'shell_counts',
                                             filters, shape=counts_shape,
                                             shell_width=self.shell_width,
