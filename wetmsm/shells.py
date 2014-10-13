@@ -11,6 +11,7 @@ from mixtape.featurizer import Featurizer
 import tables
 
 from . import mcmd
+from . import analysis
 
 
 class SolventShellsFeaturizer(Featurizer):
@@ -86,6 +87,8 @@ class SolventShellsFeaturizer(Featurizer):
                 # And count the number in this shell
                 shellcounts[:, i, j] = np.sum(shell_bool, axis=1)
 
+        shellcounts = analysis.normalize(shellcounts, shell_w)
+        shellcounts = analysis.reshape(shellcounts)
         return shellcounts
 
 
