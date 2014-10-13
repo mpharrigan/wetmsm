@@ -8,9 +8,8 @@ Install
 
 Install using `python setup.py install`
 
-*Python 2*: This package was written and tested on Python 3. Using
-python-future's `pasteurize` script seems to work well at converting
-the code to be Py2 compatible.
+This package was written and tested on Python 3. Python 2 is supported
+through the python-future package. Let me know if you run into any issues.
 
 
 How to use

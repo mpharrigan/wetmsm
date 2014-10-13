@@ -2,7 +2,9 @@
 
 Author: Matthew Harrigan
 """
-
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from future.builtins import *
 import unittest
 import numpy as np
 import wetmsm
@@ -83,25 +85,6 @@ class TestPruneAll(unittest.TestCase):
             [0, 0, 2, 0, 9],
             [0, 0, 0, 4, 9]
         ])
-
-    @unittest.skip
-    def test_dict_delete(self):
-        fp2d2 = np.copy(self.fp2d1)
-        fp2d2[:, -1] = 8
-
-        fp_dict = {'traj1': self.fp2d1, 'traj2': fp2d2}
-
-        out_dict, to_delete = wetmsm.analysis.prune_all_dict(fp_dict)
-
-        out1 = out_dict['traj1']
-        out2 = out_dict['traj2']
-
-        self.assertEqual(out1.shape[1], 3)
-        self.assertEqual(out2.shape[1], 3)
-        self.assertEqual(out1.shape[0], 3)
-        self.assertEqual(out2.shape[0], 3)
-
-        np.testing.assert_array_equal(to_delete, [[0, 4]])
 
 
     def test_delete(self):
