@@ -152,20 +152,20 @@ class SolventShellsFeaturizer(Featurizer):
 
 def _create_hfile(fn, array_name, filters, shape, shell_width, n_shells):
     """Open an HDF5 file that stores shell parameters."""
-    assn_h = tables.open_file(fn, 'w')
-    assn_ea = assn_h.create_earray(assn_h.root, array_name,
-                                   atom=tables.UIntAtom(), shape=shape,
-                                   filters=filters)
-    sw_node1 = assn_h.create_carray(assn_h.root, "shell_width",
-                                    atom=tables.FloatAtom(),
-                                    shape=(1,), filters=filters)
-    sw_node1[:] = shell_width
-    ns_node1 = assn_h.create_carray(assn_h.root, "n_shells",
-                                    atom=tables.IntAtom(),
-                                    shape=(1,), filters=filters)
-    ns_node1[:] = n_shells
+    handle = tables.open_file(fn, 'w')
+    earray = handle.create_earray(handle.root, array_name,
+                                  atom=tables.UIntAtom(), shape=shape,
+                                  filters=filters)
+    sw_node = handle.create_carray(handle.root, "shell_width",
+                                   atom=tables.FloatAtom(),
+                                   shape=(1,), filters=filters)
+    sw_node[:] = shell_width
+    ns_node = handle.create_carray(handle.root, "n_shells",
+                                   atom=tables.IntAtom(),
+                                   shape=(1,), filters=filters)
+    ns_node[:] = n_shells
 
-    return assn_h, assn_ea
+    return handle, earray
 
 
 class SolventShellsComputation(mcmd.Parsable):
