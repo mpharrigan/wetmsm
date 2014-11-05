@@ -54,8 +54,9 @@ class SolventShellsFeaturizer(Featurizer):
 
         Returns
         -------
-        shellcounts : np.ndarray, shape=(n_frames, n_solute, n_shells)
-            Number of solvent atoms in shell_i around solute_i at frame_i
+        shellcounts : np.ndarray, shape=(n_frames, n_solute * n_shells)
+            For each frame, the instantaneous density in a shell around
+            a solute. Features are grouped by solute (not shell)
         """
 
         # Set up parameters
