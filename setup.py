@@ -4,9 +4,11 @@ import numpy
 
 setup(
     name='WetMSM',
-    version="0.2",
+    version="0.3",
     include_dirs=[numpy.get_include()],
     ext_modules=cythonize("wetmsm/*.pyx"),
     packages=find_packages(),
-    zip_safe=False
+    zip_safe=False,
+    entry_points={'msmbuilder.commands':
+                      'wetmsm = wetmsm.shells:SolventShellsFeaturizerCommand'}
 )

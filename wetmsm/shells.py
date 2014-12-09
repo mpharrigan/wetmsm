@@ -13,6 +13,9 @@ import tables
 from . import mcmd
 from . import analysis
 
+from msmbuilder.commands.featurizer import FeaturizerCommand
+
+
 
 class SolventShellsFeaturizer(Featurizer):
     """Bin solvent atoms into spherical shells around solute atoms.
@@ -266,6 +269,14 @@ class SolventShellsComputation(mcmd.Parsable):
     def main(self):
         """Main entry point for this script."""
         self.featurize_all()
+
+class SolventShellsFeaturizerCommand(FeaturizerCommand):
+    """Make a MSMBuilder command-line command from our featurizer
+
+    This registers itself in setup.py entry_points
+    """
+    klass = SolventShellsFeaturizer
+    _concrete = True
 
 
 def parse():
