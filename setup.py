@@ -9,6 +9,8 @@ setup(
     ext_modules=cythonize("wetmsm/*.pyx"),
     packages=find_packages(),
     zip_safe=False,
-    entry_points={'msmbuilder.commands':
-                      'wetmsm = wetmsm.shells:SolventShellsFeaturizerCommand'}
+    entry_points={'msmbuilder.commands': [
+        'wetmsm1 = wetmsm.shells:SolventShellsFeaturizerCommand',
+        'wetmsm2 = wetmsm.shells:SolventShellsAssignerCommand'
+    ]}
 )

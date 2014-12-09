@@ -7,18 +7,20 @@ from __future__ import (absolute_import, division,
 from future.builtins import *
 import mdtraj as md
 import numpy as np
-from mixtape.featurizer import Featurizer
 import tables
+import os
 
-from . import mcmd
 from . import analysis
 
+# MSMBuilder imports
+from msmbuilder.featurizer import Featurizer
+from msmbuilder.dataset import MDTrajDataset
 from msmbuilder.commands.featurizer import FeaturizerCommand
-
+from msmbuilder.utils.progressbar import ProgressBar, Percentage, Bar, ETA
 
 
 class SolventShellsFeaturizer(Featurizer):
-    """Bin solvent atoms into spherical shells around solute atoms.
+    """Featurizer based on local, instantaneous water density.
 
     Parameters
     ----------
@@ -96,13 +98,36 @@ class SolventShellsFeaturizer(Featurizer):
         return shellcounts
 
 
-    def assign_transform(self, traj, frame_offset=0):
-        """Featurize and save assignments of solvent atoms to shells.
+class SolventShellsAssigner(SolventShellsFeaturizer):
+    """Assign solvent atoms to shells to compliment SolventShellsFeaturizer.
+
+    Parameters
+    ----------
+    solute_indices : np.ndarray, shape=(n_solute,1)
+        Indices of solute atoms
+    solvent_indices : np.ndarray, shape=(n_solvent, 1)
+        Indices of solvent atoms
+    n_shells : int
+        Number of shells to consider around each solute atom
+    shell_width : float
+        The width of each solvent atom
+    periodic : bool
+        Whether to consider a periodic system in distance calculations
+
+    Returns
+    -------
+    assignments : np.ndarray, shape=(x, 4)
+        Each row corresponds to an assignment of a solvent atom to a shell
+        belonging to a solute atom at a certain frame:
+            (frame_i, solvent_i, solute_i, shell_i)
+
+    """
+
+    def partial_transform(self, traj, frame_offset):
+        """Save assignments of solvent atoms to shells.
 
         Returns
         -------
-        shellcounts : np.ndarray, shape=(n_frames, n_solute, n_shells)
-            Number of solvent atoms in shell_i around solute_i at frame_i
         assignments : np.ndarray, shape=(x, 4)
             Each row corresponds to an assignment of a solvent atom to a shell
             belonging to a solute atom at a certain frame:
@@ -117,8 +142,6 @@ class SolventShellsFeaturizer(Featurizer):
 
         # Initialize arrays
         atom_pairs = np.zeros((len(self.solvent_indices), 2))
-        shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell),
-                               dtype=int)
         assignments_list = []
 
         for i, solute_i in enumerate(self.solute_indices):
@@ -135,8 +158,6 @@ class SolventShellsFeaturizer(Featurizer):
                     distances >= shell_edges[j],
                     distances < shell_edges[j + 1]
                 )
-                # And count the number in this shell
-                shellcounts[:, i, j] = np.sum(shell_bool, axis=1)
 
                 # Build assignments chunk
                 frame_solv = np.asarray(np.where(shell_bool)).T
@@ -149,126 +170,8 @@ class SolventShellsFeaturizer(Featurizer):
                 solu_shell[:, 1] = j
                 assignments_list += [np.hstack((frame_solv, solu_shell))]
 
-        return shellcounts, np.vstack(assignments_list)
+        return np.vstack(assignments_list)
 
-
-def _create_hfile(fn, array_name, filters, shape, shell_width, n_shells):
-    """Open an HDF5 file that stores shell parameters."""
-    handle = tables.open_file(fn, 'w')
-    earray = handle.create_earray(handle.root, array_name,
-                                  atom=tables.UIntAtom(), shape=shape,
-                                  filters=filters)
-    sw_node = handle.create_carray(handle.root, "shell_width",
-                                   atom=tables.FloatAtom(),
-                                   shape=(1,), filters=filters)
-    sw_node[:] = shell_width
-    ns_node = handle.create_carray(handle.root, "n_shells",
-                                   atom=tables.IntAtom(),
-                                   shape=(1,), filters=filters)
-    ns_node[:] = n_shells
-
-    return handle, earray
-
-
-class SolventShellsComputation(mcmd.Parsable):
-    """Do solvent fingerprinting on trajectories.
-
-    :param solvent_indices_fn: Path to solvent indices file
-    :param solute_indices_fn: Path to solute indices file.
-    :param n_shells: Number of shells to do
-    :param shell_width: Width of each shell
-    :param traj_fn: Trajectory filename
-    :param traj_top: Trajectory topology
-    :param counts_out_fn: Save total counts for each shell here
-    :param assign_out_fn: Save assignments of solvent to shells here
-    """
-
-    def __init__(self,
-                 solute_indices_fn='solute_indices.dat',
-                 solvent_indices_fn='solvent_indices.dat',
-                 n_shells=5,
-                 shell_width=0.2,
-                 traj_fn="",
-                 traj_top="",
-                 counts_out_fn='shell_count.h5',
-                 assign_out_fn='shell_assign.h5'):
-        # Initialize attributes
-        self.solute_indices_fn = solute_indices_fn
-        self.solvent_indices_fn = solvent_indices_fn
-        self.n_shells = n_shells
-        self.shell_width = shell_width
-        self.traj_fn = traj_fn
-        self.traj_top = traj_top
-        self.featurizer = None
-        self.feat_assn = None
-        self.feat_counts = None
-        self.counts_out_fn = counts_out_fn
-        self.assign_out_fn = assign_out_fn
-
-        # Load indices
-        if solvent_indices_fn is not None:
-            self.solvent_indices = np.loadtxt(self.solvent_indices_fn,
-                                              dtype=int)
-        if solute_indices_fn is not None:
-            self.solute_indices = np.loadtxt(self.solute_indices_fn, dtype=int)
-
-        self.featurizer = None
-
-    def __str__(self):
-        fmt = "Shells: {traj_fn} with {n_shells} shells of width {shell_width} using {solute_indices_fn} and {solvent_indices_fn}"
-        return fmt.format(**self.__dict__)
-
-    @property
-    def n_solutes(self):
-        return len(self.solute_indices)
-
-
-    def featurize_all(self):
-        """Featurize."""
-
-        # Create featurizer
-        self.featurizer = SolventShellsFeaturizer(
-            self.solute_indices,
-            self.solvent_indices,
-            self.n_shells,
-            self.shell_width,
-            periodic=True)
-
-        # TODO: Add option to not overwrite / Don't do computation if these exist
-
-        # Use compression
-        filters = tables.Filters(complevel=5, complib='zlib')
-
-        # Set up assignments file
-        assn_h, assn_ea = _create_hfile(self.assign_out_fn, 'assignments',
-                                        filters, shape=(0, 4),
-                                        shell_width=self.shell_width,
-                                        n_shells=self.n_shells)
-
-        # Set up counts file
-        counts_shape = (0, self.n_solutes, self.n_shells)
-        counts_h, counts_ea = _create_hfile(self.counts_out_fn, 'shell_counts',
-                                            filters, shape=counts_shape,
-                                            shell_width=self.shell_width,
-                                            n_shells=self.n_shells)
-
-        # Save in chunks
-        chunksize = 5000
-        for i, chunk in enumerate(
-                md.iterload(self.traj_fn, top=self.traj_top, chunk=chunksize)):
-            count_chunk, assn_chunk = self.featurizer.assign_transform(
-                chunk, i * chunksize
-            )
-            assn_ea.append(assn_chunk)
-            counts_ea.append(count_chunk)
-
-        # Close files
-        assn_h.close()
-        counts_h.close()
-
-    def main(self):
-        """Main entry point for this script."""
-        self.featurize_all()
 
 class SolventShellsFeaturizerCommand(FeaturizerCommand):
     """Make a MSMBuilder command-line command from our featurizer
@@ -278,12 +181,61 @@ class SolventShellsFeaturizerCommand(FeaturizerCommand):
     klass = SolventShellsFeaturizer
     _concrete = True
 
+    def _solvent_indices_type(self, fn):
+        if fn is None:
+            return None
+        return np.loadtxt(fn, dtype=int, ndmin=1)
 
-def parse():
-    """Parse command line options."""
-    gsc = mcmd.parsify(SolventShellsComputation)
-    gsc.main()
+    def _solute_indices_type(self, fn):
+        if fn is None:
+            return None
+        return np.loadtxt(fn, dtype=int, ndmin=1)
 
 
-if __name__ == "__main__":
-    parse()
+class SolventShellsAssignerCommand(SolventShellsFeaturizerCommand):
+    """MSMBuilder command-line command to generate assignments."""
+    klass = SolventShellsAssigner
+    _concrete = True
+
+
+    def start(self):
+        """This method lovingly copied from MSMBuilder.
+
+        We need to pass an extra parameter to partial transform
+        """
+        if os.path.exists(self.out):
+            self.error('File exists: %s' % self.out)
+
+        print(self.instance)
+        if os.path.exists(os.path.expanduser(self.top)):
+            top = os.path.expanduser(self.top)
+        else:
+            top = None
+
+        input_dataset = MDTrajDataset(self.trjs, topology=top,
+                                      stride=self.stride, verbose=False)
+        out_dataset = input_dataset.create_derived(self.out, fmt='dir-npy')
+
+        pbar = ProgressBar(
+            widgets=[Percentage(), Bar(), ETA()],
+            maxval=len(input_dataset)).start()
+        for key in pbar(input_dataset.keys()):
+            trajectory = []
+            for i, chunk in enumerate(
+                    input_dataset.iterload(key, chunk=self.chunk)
+            ):
+                # ###### Pass offset as i * self.chunk!! ###########
+                trajectory.append(
+                    self.instance.partial_transform(
+                        chunk, frame_offset=i * self.chunk
+                    )
+                )
+            out_dataset[key] = np.concatenate(trajectory)
+            out_dataset.close()
+
+        print("\nSaving transformed dataset to '%s'" % self.out)
+        print("To load this dataset interactive inside an IPython")
+        print("shell or notebook, run\n")
+        print("  $ ipython")
+        print("  >>> from msmbuilder.dataset import dataset")
+        print("  >>> ds = dataset('%s')\n" % self.out)
