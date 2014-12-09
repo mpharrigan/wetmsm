@@ -16,7 +16,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 import tables
 
-from . import mcmd
 from ._vmd_write import _compute_chunk_add, _compute_chunk_max, \
     _compute_chunk_avg
 
@@ -241,34 +240,4 @@ class VMDWriter(object):
 
         plt.tight_layout()
         return loading1d, loading2d
-
-
-class VMDWriterCommand(mcmd.Parsable):
-    # TODO: This command is incomplete
-    # Do it by-hand in IPython for now
-
-    def __init__(self, assn_fn='assign.h5',
-                 solvent_ind_fn='solvent_indices.dat',
-                 pruned_fn='fp2d_deleted.pickl', loading_data='.pickl',
-                 dat_out_fn='trj.dat'):
-        pass
-
-
-    def main(self):
-        assn_h = tables.open_file(self.assn_fn)
-        assn = assn_h.root.assignments
-
-        solute_ind = None
-        solvent_ind = None
-
-
-def parse():
-    vc = mcmd.parsify(VMDWriterCommand)
-    vc.main()
-
-
-if __name__ == "__main__":
-    log.addHandler(logging.StreamHandler())
-    log.setLevel(logging.INFO)
-    parse()
 
