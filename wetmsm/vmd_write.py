@@ -66,7 +66,7 @@ mol colupdate 1 top 1
 class VMDWriter(object):
     """Write VMD scripts to load tICA loadings into 'user' field.
 
-    :param assn: (M,4) array 'assignments' file
+    :param assn: (M,4) array 'assignments'
         The columns are: frame, solvent, solute, shell (indices)
     :param n_frames: Number of frames. Needed to initialize the array
     :param n_atoms: Number of all atoms. Needed to initialize the array
@@ -81,7 +81,7 @@ class VMDWriter(object):
 
     def __init__(self, assn, solvent_ind, n_frames, n_atoms, n_solute,
                  n_shells):
-        self.assn = assn
+        self.assn = np.asarray(assn, dtype='uint32')
         self.solvent_ind = solvent_ind
 
         self.n_frames = n_frames
@@ -90,14 +90,11 @@ class VMDWriter(object):
         self.n_atoms = n_atoms
 
 
-    def compute(self, loading2d, stride=1, which='add', chunksize=1000000):
+    def compute(self, loading2d, stride=1, which='add'):
         """Assign loadings to atoms based on an assignments file.
 
         :param loading2d: 2-d loadings (from tICA/PCA) which we apply
             to relevant atoms. Use `translate_loadings` first probably
-
-        :param deleted: Indices (in 1d) of features that were removed
-            (likely due to low-variance) before performing tICA
 
         :param stride: Stride output for memory reasons. All rows of the
             assignment file will still be considered
@@ -107,7 +104,6 @@ class VMDWriter(object):
             - max: Take maximum shell contribution for each solvent atom
             - avg: WIP
 
-        :param chunksize: How many roads of assignments to read at a time
         """
 
         # Initialize output arrays
@@ -128,15 +124,7 @@ class VMDWriter(object):
                     'avg': _compute_chunk_avg_wrapped}
         compute_chunk = func_map[which]
 
-        # Deal with chunks of the pytables EARRAY
-        n_chunks = self.assn.shape[0] // chunksize + 1
-
-        for chunk_i in range(n_chunks):
-            chunk = self.assn.read(chunksize * chunk_i,
-                                   chunksize * (chunk_i + 1))
-            log.debug("Chunk %d: %s", chunk_i, str(chunk.shape))
-            compute_chunk(chunk, self.solvent_ind, loading2d, user, stride)
-            del chunk
+        compute_chunk(self.assn, self.solvent_ind, loading2d, user, stride)
 
         if which == 'avg':
             inds = occupancy > 0

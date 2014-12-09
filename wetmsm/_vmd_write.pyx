@@ -10,12 +10,12 @@ ctypedef double (*hf_type)(double, double)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void  _compute_chunk(  
-                            unsigned int[:, :] assn,
-                            long[:] solvent_ind,
-                            double[:, :] loading2d,
-                            double[:, :] user,
-                            int stride,
-                            hf_type helper_func):
+                        unsigned int[:, :] assn,
+                        long[:] solvent_ind,
+                        double[:, :] loading2d,
+                        double[:, :] user,
+                        int stride,
+                        hf_type helper_func):
     """Apply a function to each line of assignments."""
     cdef int fr, vent, ute, shell
 
