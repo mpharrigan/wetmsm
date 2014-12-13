@@ -22,4 +22,21 @@ Setup will install new subcommands to the `msmb` command.
  - `SolventShellsAssigner`:   Used for generating "assignments" of atoms
                               to shells for visualization
 
-
+ - `SolventApplyComponents`:  We can leverage the linear coefficients of 
+                              decomposition models like PCA or tICA
+                              to enhance visualization of "important"
+                              solvent atoms. This command takes as input
+                              the result of `SolventShellsAssigner` (which
+                              assigns solvent atoms to features) as well
+                              as a serialized decomposition model
+                              (PCA or tICA) and weights solvent atoms
+                              by the coefficients of the features to
+                              which they are assigned.
+                              
+ - `SolventWriteVMD`;         This will export data from the above command
+                              in a format readable by VMD. This command
+                              will also generate a script which loads
+                              the data into the `user` field in VMD. This
+                              allows, e.g., coloring and selection based
+                              on solvent tICA coefficients.
+                              
