@@ -8,7 +8,6 @@ from future.builtins import *
 from unittest import TestCase
 import unittest
 
-import tables
 from wetmsm.vmd_write import VMDWriter
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -16,20 +15,12 @@ from numpy.testing import assert_array_equal
 
 class TestVmdWrite(TestCase):
     def setUp(self):
-        # Open file in memory and do not save
-        assn_h = tables.open_file('tmp_assn.h5', 'w', driver='H5FD_CORE',
-                                  driver_core_backing_store=0)
-        assn = assn_h.create_earray(assn_h.root, 'assignments',
-                                    atom=tables.UIntAtom(), shape=(0, 4))
-        self.assn_h = assn_h
-
-
         # (frame, solvent, solute, shell)
         vent_a = 0
         vent_b = 1
         ute_1 = 0
         ute_2 = 1
-        assn.append(np.array([
+        assn = np.array([
             [0, vent_a, ute_1, 0],
             [0, vent_b, ute_2, 0],
             [1, vent_a, ute_1, 1],
@@ -38,7 +29,7 @@ class TestVmdWrite(TestCase):
             [1, vent_b, ute_2, 1],
             [2, vent_a, ute_2, 0],
             [2, vent_b, ute_1, 0],
-        ]))
+        ])
         # O.   'O
         # O  :  O
         # O'   .O
@@ -89,7 +80,7 @@ class TestVmdWrite(TestCase):
             [2.0, 4.0, 99],
             [6.0, 9.0, 99]
         ])
-        user = self.vmd.compute(loading2d, which='avg', chunksize=1)
+        user = self.vmd.compute(loading2d, which='avg')
         sb = np.zeros((3, 5))
 
         sb[:, 2:4] = np.array([
@@ -116,8 +107,6 @@ class TestVmdWrite(TestCase):
 
         assert_array_equal(user, sb)
 
-    def tearDown(self):
-        self.assn_h.close()
 
 
 if __name__ == "__main__":
