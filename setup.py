@@ -11,6 +11,8 @@ setup(
     zip_safe=False,
     entry_points={'msmbuilder.commands': [
         'wetmsm1 = wetmsm.shells:SolventShellsFeaturizerCommand',
-        'wetmsm2 = wetmsm.shells:SolventShellsAssignerCommand'
+        'wetmsm2 = wetmsm.shells:SolventShellsAssignerCommand',
+        'wetmsm3 = wetmsm.vmd_write:ApplyComponentsCommand',
+        'wetmsm4 = wetmsm.vmd_write:WriteVMDCommand'
     ]}
 )
