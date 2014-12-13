@@ -180,6 +180,7 @@ class SolventShellsFeaturizerCommand(FeaturizerCommand):
     """
     klass = SolventShellsFeaturizer
     _concrete = True
+    _group = "SolventShells1"
 
     def _solvent_indices_type(self, fn):
         if fn is None:
@@ -196,6 +197,7 @@ class SolventShellsAssignerCommand(SolventShellsFeaturizerCommand):
     """MSMBuilder command-line command to generate assignments."""
     klass = SolventShellsAssigner
     _concrete = True
+    _group = "SolventShells2"
 
 
     def start(self):
