@@ -15,8 +15,8 @@ import logging
 import pickle
 
 import numpy as np
-from mixtape.tica import tICA
-from mixtape.pca import PCA
+from msmbuilder.decomposition import tICA
+from msmbuilder.decomposition import PCA
 import tables
 
 
