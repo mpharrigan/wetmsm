@@ -8,7 +8,7 @@ from future.builtins import *
 from unittest import TestCase
 import unittest
 
-from wetmsm.vmd_write import VMDWriter
+from wetmsm import ApplyComponents
 import numpy as np
 from numpy.testing import assert_array_equal
 
@@ -20,7 +20,7 @@ class TestVmdWrite(TestCase):
         vent_b = 1
         ute_1 = 0
         ute_2 = 1
-        assn = np.array([
+        self.assn = np.array([
             [0, vent_a, ute_1, 0],
             [0, vent_b, ute_2, 0],
             [1, vent_a, ute_1, 1],
@@ -34,21 +34,23 @@ class TestVmdWrite(TestCase):
         # O  :  O
         # O'   .O
 
-        solvent_ind = np.array([2, 3])
-        n_frames = 3
-        n_atoms = 5
-        n_solute = 2
-        n_shells = 3
+        self.solv = np.array([2, 3])
+        self.solu = np.array([0, 1])
 
-        self.vmd = VMDWriter(assn, solvent_ind, n_frames, n_atoms, n_solute,
-                             n_shells)
+        class DummyTraj(object):
+            n_frames = 3
+            n_atoms = 5
+
+        self.traj = DummyTraj()
+
 
     def test_add(self):
         loading2d = np.array([
             [2.0, 4.0, 99],
             [6.0, 8.0, 99]
         ])
-        user = self.vmd.compute(loading2d)
+        vmd = ApplyComponents(loading2d, self.solv, self.solu)
+        user = vmd.partial_transform((self.traj, self.assn))
         sb = np.zeros((3, 5))
 
         sb[:, 2:4] = np.array([
@@ -64,7 +66,8 @@ class TestVmdWrite(TestCase):
             [2.0, 4.0, 99],
             [6.0, 8.0, 99]
         ])
-        user = self.vmd.compute(loading2d, which='max')
+        vmd = ApplyComponents(loading2d, self.solv, self.solu, agg_method='max')
+        user = vmd.partial_transform((self.traj, self.assn))
         sb = np.zeros((3, 5))
 
         sb[:, 2:4] = np.array([
@@ -80,7 +83,8 @@ class TestVmdWrite(TestCase):
             [2.0, 4.0, 99],
             [6.0, 9.0, 99]
         ])
-        user = self.vmd.compute(loading2d, which='avg')
+        vmd = ApplyComponents(loading2d, self.solv, self.solu, agg_method='avg')
+        user = vmd.partial_transform((self.traj, self.assn))
         sb = np.zeros((3, 5))
 
         sb[:, 2:4] = np.array([
@@ -96,7 +100,8 @@ class TestVmdWrite(TestCase):
             [1.0, 0, 0],
             [1.0, 0, 0]
         ])
-        user = self.vmd.compute(loading2d, which='avg')
+        vmd = ApplyComponents(loading2d, self.solv, self.solu, agg_method='avg')
+        user = vmd.partial_transform((self.traj, self.assn))
         sb = np.zeros((3, 5))
 
         sb[:, 2:4] = np.array([
@@ -106,7 +111,6 @@ class TestVmdWrite(TestCase):
         ])
 
         assert_array_equal(user, sb)
-
 
 
 if __name__ == "__main__":
