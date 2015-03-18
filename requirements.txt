@@ -1,0 +1,4 @@
+mdtraj
+msmbuilder
+cython
+future
