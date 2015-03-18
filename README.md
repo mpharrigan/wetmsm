@@ -42,7 +42,7 @@ Setup will install new subcommands to the `msmb` command.
                         
 Method Overview
 ---------------
-![Shells schematic](/doc/source/assets/shell_fig_clip.png)
+![Shells schematic](/doc/source/_static/shell_fig_clip.png)
 
 "Solvent" atoms are binned into shells surrounding "solute" atoms. The
 count of atoms in each shells can be used as a feature vector for use
