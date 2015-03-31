@@ -73,7 +73,7 @@ class SolventShellsFeaturizer(Featurizer):
         # Initialize arrays
         atom_pairs = np.zeros((len(self.solvent_indices), 2))
         shellcounts = np.zeros((traj.n_frames, self.n_solute, n_shell),
-                               dtype=int)
+                               dtype=np.int)
 
         for i, solute_i in enumerate(self.solute_indices):
             # For each solute atom, calculate distance to all solvent
@@ -162,7 +162,7 @@ class SolventShellsAssigner(SolventShellsFeaturizer):
                 # Build assignments chunk
                 frame_solv = np.asarray(np.where(shell_bool)).T
                 frame_solv[:, 0] += frame_offset
-                solu_shell = np.zeros((len(frame_solv), 2), dtype=int)
+                solu_shell = np.zeros((len(frame_solv), 2), dtype=np.int)
 
                 # TODO: Why not store solute_i here?
                 # Maybe to match up with "counts"
@@ -185,12 +185,12 @@ class SolventShellsFeaturizerCommand(FeaturizerCommand):
     def _solvent_indices_type(self, fn):
         if fn is None:
             return None
-        return np.loadtxt(fn, dtype=int, ndmin=1)
+        return np.loadtxt(fn, dtype=np.int, ndmin=1)
 
     def _solute_indices_type(self, fn):
         if fn is None:
             return None
-        return np.loadtxt(fn, dtype=int, ndmin=1)
+        return np.loadtxt(fn, dtype=np.int, ndmin=1)
 
 
 class SolventShellsAssignerCommand(SolventShellsFeaturizerCommand):
