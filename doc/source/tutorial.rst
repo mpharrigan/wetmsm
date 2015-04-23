@@ -18,8 +18,8 @@ Decide which atoms you will treat as "solvent" and which will be your
 "solute" atoms. For example, to use water-oxygens and protein
 alpha-carbons (resp.)::
 
-    $ msmb -a -p mypdb.pdb -o solute.txt --alpha
-    $ msmb -a -p mypdb.pdb -o solvent.txt --water
+    $ msmb AtomIndices -a -p mypdb.pdb -o solute.txt --alpha
+    $ msmb AtomIndices -a -p mypdb.pdb -o solvent.txt --water
 
 Use ``SolventShellsFeaturizer`` to featurize your trajectories. ::
 
