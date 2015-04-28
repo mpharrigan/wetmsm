@@ -274,7 +274,7 @@ class ApplyComponentsCommand(NumpydocClassCommand):
         default='')
     out = argument(
         '--out', required=True, help='Output path', type=exttype('/'))
-    assn = argument(
+    assignments = argument(
         '--assignments', help="Assignments dataset from SolventShellsAssigner",
         required=True
     )
@@ -320,7 +320,7 @@ class ApplyComponentsCommand(NumpydocClassCommand):
         traj_dataset = MDTrajDataset(self.trjs, topology=top,
                                      stride=self.instance.stride, verbose=False)
 
-        with dataset(self.assn, mode='r') as assn_dataset:
+        with dataset(self.assignments, mode='r') as assn_dataset:
             out_dataset = assn_dataset.create_derived(self.out, fmt='dir-npy')
             pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()],
                                maxval=len(assn_dataset)).start()
