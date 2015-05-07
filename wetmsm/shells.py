@@ -205,8 +205,12 @@ class SolventShellsAssignerCommand(SolventShellsFeaturizerCommand):
 
         We need to pass an extra parameter to partial transform
         """
-        if os.path.exists(self.out):
-            self.error('File exists: %s' % self.out)
+        if self.out is not None:
+            print("Warning! Please use --transformed")
+            self.transformed = self.out
+
+        if os.path.exists(self.transformed):
+            self.error('File exists: %s' % self.transformed)
 
         print(self.instance)
         if os.path.exists(os.path.expanduser(self.top)):
@@ -216,7 +220,7 @@ class SolventShellsAssignerCommand(SolventShellsFeaturizerCommand):
 
         input_dataset = MDTrajDataset(self.trjs, topology=top,
                                       stride=self.stride, verbose=False)
-        out_dataset = input_dataset.create_derived(self.out, fmt='dir-npy')
+        out_dataset = input_dataset.create_derived(self.transformed, fmt='dir-npy')
 
         pbar = ProgressBar(
             widgets=[Percentage(), Bar(), ETA()],
@@ -235,9 +239,9 @@ class SolventShellsAssignerCommand(SolventShellsFeaturizerCommand):
             out_dataset[key] = np.concatenate(trajectory)
             out_dataset.close()
 
-        print("\nSaving transformed dataset to '%s'" % self.out)
+        print("\nSaving transformed dataset to '%s'" % self.transformed)
         print("To load this dataset interactive inside an IPython")
         print("shell or notebook, run\n")
         print("  $ ipython")
         print("  >>> from msmbuilder.dataset import dataset")
-        print("  >>> ds = dataset('%s')\n" % self.out)
+        print("  >>> ds = dataset('%s')\n" % self.transformed)
