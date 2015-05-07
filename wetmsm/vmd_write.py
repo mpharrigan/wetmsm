@@ -282,12 +282,12 @@ class ApplyComponentsCommand(NumpydocClassCommand):
     def _solvent_indices_type(self, fn):
         if fn is None:
             return None
-        return np.loadtxt(fn, dtype=int, ndmin=1)
+        return np.loadtxt(fn, dtype=np.int, ndmin=1)
 
     def _solute_indices_type(self, fn):
         if fn is None:
             return None
-        return np.loadtxt(fn, dtype=int, ndmin=1)
+        return np.loadtxt(fn, dtype=np.int, ndmin=1)
 
     def _component_type(self, spec):
         if spec is None:
