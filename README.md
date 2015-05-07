@@ -8,8 +8,9 @@ Install
 
 Install using `python setup.py install`
 
-This package was written and tested on Python 3.4. Python 2 is supported
-through the python-future package. Let me know if you run into any issues.
+This package was primarily developed on python 3 and uses the python-future
+package to support Python 2.  We run CI tests against python 2, but let me
+know if you run into any issues.
 
 
 Using with MSMBuilder
