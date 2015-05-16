@@ -97,6 +97,33 @@ class SolventShellsFeaturizer(Featurizer):
         shellcounts = analysis.reshape(shellcounts)
         return shellcounts
 
+    def describe_features(self, traj):
+        """Return a Pandas Dataframe describing the Water features."""
+        x = []
+
+        resSeq = [np.array([traj.top.atom(i).residue.resSeq]) for i in self.solute_indices]
+        resid = [np.array([traj.top.atom(i).residue.index]) for i in self.solute_indices]
+        resnames = [[traj.top.atom(i).residue.name] for i in self.solute_indices]
+        aind = [[i] for i in self.solute_indices]
+
+        bigclass = ["water_shells"] * self.n_features
+        otherInfo = ["None"] * self.n_features
+        smallclass = range(self.n_shells)
+
+
+        aind = np.array(aind * self.n_shells)
+        resnames = resnames * self.n_shells
+        resSeq = resSeq * self.n_shells
+        resid = resid * self.n_shells
+        smallclass = [val for val in smallclass for _ in range(self.n_solute)]
+
+        for i in range(len(resnames)):
+            d_i = dict(resname=resnames[i], atomind=aind[i], resSeq=resSeq[i], resid=resid[i],\
+                       bigclass=bigclass[i],otherInfo=otherInfo[i],  smallclass=smallclass[i])
+            x.append(d_i)
+
+        return x
+
 
 class SolventShellsAssigner(SolventShellsFeaturizer):
     """Assign solvent atoms to shells to compliment SolventShellsFeaturizer.
